@@ -5,7 +5,10 @@ export MEM_TYPE
 DFT_IMAGE=$(DEV_IMAGE)/boot/zImage
 DFT_UBOOT=$(DEV_IMAGE)/boot/u-boot
 
-BOARD ?= stmp378x_dev
+#BOARD ?= stmp378x_dev
+BOARD	= iMX28_EVK
+PWD	= $(shell pwd)
+CROSS_COMPILE = $(PWD)/../../../cross-toolchain/glibc/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-none-linux-gnueabi-
 
 ifeq ($(BOARD), stmp37xx_dev)
 ARCH = 37xx
