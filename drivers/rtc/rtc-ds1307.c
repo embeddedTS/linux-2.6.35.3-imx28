@@ -319,7 +319,16 @@ static int ds1307_get_time(struct device *dev, struct rtc_time *t)
 
 	/* assume 20YY not 19YY, and ignore DS1337_BIT_CENTURY */
 	t->tm_year = bcd2bin(ds1307->regs[DS1307_REG_YEAR]) + 100;
-
+	if (rtc_valid_tm(t)) {                                  
+		dev_dbg(dev, "RTC garbage, forcing to the epoch!\n");                                     
+		t->tm_mday = 1;    // The 1st...                     
+		t->tm_mon = 0;     // of January...                  
+		t->tm_year = 70;    // 1970...                       
+		t->tm_wday = 4;    // was a Thursday                 
+		t->tm_sec = 0;                                       
+		t->tm_min = 0;                                       
+		t->tm_hour =0;                                      
+	}                                                       
 	dev_dbg(dev, "%s secs=%d, mins=%d, "
 		"hours=%d, mday=%d, mon=%d, year=%d, wday=%d\n",
 		"read", t->tm_sec, t->tm_min,
