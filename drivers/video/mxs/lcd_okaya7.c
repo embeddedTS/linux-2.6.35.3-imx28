@@ -1,8 +1,7 @@
 /*
- * TS Okaya 7" LCD panel
+ * Freescale MX28 Seiko 43WVF1G LCD panel driver
  *
  * Copyright (C) 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
- * Copyright (C) 2012 Technologic Systems. All Rights Reserverd.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,16 +31,16 @@
 #include <mach/system.h>
 
 #define DOTCLK_H_ACTIVE  800
-#define DOTCLK_H_PULSE_WIDTH 50
-#define DOTCLK_HF_PORCH  0
-#define DOTCLK_HB_PORCH  0
+#define DOTCLK_H_PULSE_WIDTH 10
+#define DOTCLK_HF_PORCH  164
+#define DOTCLK_HB_PORCH  89
 #define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
 #define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
 
 #define DOTCLK_V_ACTIVE  480
-#define DOTCLK_V_PULSE_WIDTH  50
-#define DOTCLK_VF_PORCH  0
-#define DOTCLK_VB_PORCH  0
+#define DOTCLK_V_PULSE_WIDTH  10
+#define DOTCLK_VF_PORCH  10
+#define DOTCLK_VB_PORCH  23
 #define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
 #define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
 
