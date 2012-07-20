@@ -47,7 +47,11 @@
 
 #include "regs-digctl.h"
 #include "device.h"
-#include "mx28evk.h"
+#if defined(CONFIG_MACH_TS7600) 
+  #include "ts7600.h"
+#else
+  #include "mx28evk.h"
+#endif
 #include "mx28_pins.h"
 
 #if defined(CONFIG_SERIAL_MXS_DUART) || \
@@ -421,7 +425,7 @@ static void mx28_init_gpmi_nfc(void)
 #endif
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
-#if defined(CONFIG_MACH_MX28EVK)
+#if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_TS7600)
 #define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
 #define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)

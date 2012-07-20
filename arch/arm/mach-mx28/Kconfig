@@ -6,6 +6,11 @@ config MACH_MX28EVK
 	depends on ARCH_MX28
 	select USB_ARCH_HAS_EHCI
 
+config MACH_TS7600
+	bool "Technologic System TS-7600 series"
+	depends on ARCH_MX28
+	select USB_ARCH_HAS_EHCI
+
 endchoice
 
 config VECTORS_PHY_ADDR
