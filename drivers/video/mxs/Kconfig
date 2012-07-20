@@ -12,11 +12,12 @@ config FB_MXS
 config FB_MXS_LCD_43WVF1G
 	depends on FB_MXS
 	tristate "SEIKO 4.3' LCD WVGA(800x480) PANEL"
+	default n 
 
 config FB_MXS_LCD_OKAYA7
 	depends on FB_MXS
 	tristate "Okaya 7\" LCD PANEL (TS TPC products)"
-	default y if ARCH_MX28
+	default n 
 	---help---
 	  Say Y here to include support for Technologic System's
 	  7" LCD touch panel.
