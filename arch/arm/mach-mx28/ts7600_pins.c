@@ -100,8 +100,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 #if defined(CONFIG_USB_OTG)
 	 {
 	 .name 	= "usb0_id",
-	 .id 	= PINID_AUART1_RTS,
-	 .fun	= PIN_FUN2,
+	 .id 	= PINID_GPMI_RDY0,
+	 .fun	= PIN_FUN3,
 	 .data 	= 1,
 	 .pull 	= 1,
 	 .pullup = 1,
