@@ -25,6 +25,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/platform_device.h>
 
+#include <mach/regs-pinctrl.h>
 #include <mach/device.h>
 #include <mach/lcdif.h>
 #include <mach/regs-pwm.h>
@@ -166,7 +167,6 @@ static struct clk *pwm_clk;
 static int init_bl(struct mxs_platform_bl_data *data)
 {
 	int ret = 0;
-
 	pwm_clk = clk_get(NULL, "pwm");
 	if (IS_ERR(pwm_clk)) {
 		ret = PTR_ERR(pwm_clk);
@@ -175,7 +175,7 @@ static int init_bl(struct mxs_platform_bl_data *data)
 	clk_enable(pwm_clk);
 	mxs_reset_block(REGS_PWM_BASE, 1);
 
-	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(0) |
+	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(400) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
 		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
 	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
@@ -184,13 +184,13 @@ static int init_bl(struct mxs_platform_bl_data *data)
 		     BF_PWM_PERIODn_PERIOD(599),
 		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
 	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
-
+	__raw_writel(BF_PINCTRL_DOUT3_DOUT(1 << 30), REGS_PINCTRL_BASE + HW_PINCTRL_DOUT3_SET);
 	return 0;
 }
 
 static void free_bl(struct mxs_platform_bl_data *data)
 {
-	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(0) |
+	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(400) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
 		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
 	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
@@ -198,33 +198,11 @@ static void free_bl(struct mxs_platform_bl_data *data)
 		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
 		     BF_PWM_PERIODn_PERIOD(599),
 		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
+	__raw_writel(BF_PINCTRL_DOUT3_DOUT(1 << 30), REGS_PINCTRL_BASE + HW_PINCTRL_DOUT3_CLR);
 	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
 
 	clk_disable(pwm_clk);
 	clk_put(pwm_clk);
-}
-
-static int values[] = { 0, 4, 9, 14, 20, 27, 35, 45, 57, 75, 100 };
-
-static int power[] = {
-	0, 1500, 3600, 6100, 10300,
-	15500, 74200, 114200, 155200,
-	190100, 191000
-};
-
-static int bl_to_power(int br)
-{
-	int base;
-	int rem;
-
-	if (br > 100)
-		br = 100;
-	base = power[br / 10];
-	rem = br % 10;
-	if (!rem)
-		return base;
-	else
-		return base + (rem * (power[br / 10 + 1]) - base) / 10;
 }
 
 static int set_bl_intensity(struct mxs_platform_bl_data *data,
@@ -240,20 +218,7 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 	if (suspended)
 		intensity = 0;
 
-	/*
-	 * This is not too cool but what can we do?
-	 * Luminance changes non-linearly...
-	 */
-	if (regulator_set_current_limit
-	    (data->regulator, bl_to_power(intensity), bl_to_power(intensity)))
-		return -EBUSY;
-
-	scaled_int = values[intensity / 10];
-	if (scaled_int < 100) {
-		int rem = intensity - 10 * (intensity / 10);	/* r = i % 10; */
-		scaled_int += rem * (values[intensity / 10 + 1] -
-				     values[intensity / 10]) / 10;
-	}
+	scaled_int = (360-((intensity*22)/10));
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(scaled_int) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
 		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));

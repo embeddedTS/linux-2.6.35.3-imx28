@@ -308,6 +308,29 @@ config TOUCHSCREEN_MXS
 	  Say Y here if you want to enable MXS LRADC-based touchscreen.
 	  module will be called mxs-ts.
 
+if TOUCHSCREEN_MXS
+
+config TSLCD_NEGX
+	bool "Flip horizontal axis"
+	help
+	  Say Y here if the X axis of touch screen is inverted.  This can
+	  also be passed to the module as "negx"
+
+config TSLCD_NEGY
+	bool "Flip vertical axis"
+	help
+	  Say Y here if the Y axis of touch screen is inverted.  This can
+	  also be passed to the module as "negy"
+
+config TSLCD_SWAPXY
+	bool "Swap horizontal and vertical axes"
+	help
+	  Say Y here if horizonal and vertical axes of touchscreen are swapped.
+	  This can also be passed to the module as "swapxy"
+
+endif
+
+
 config TOUCHSCREEN_HTCPEN
 	tristate "HTC Shift X9500 touchscreen"
 	depends on ISA

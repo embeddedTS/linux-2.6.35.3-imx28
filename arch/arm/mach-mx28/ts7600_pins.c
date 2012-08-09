@@ -379,10 +379,12 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	{
 	 .name = "LCD_RESET",
 	 .id = PINID_LCD_RESET,
-	 .fun = PIN_FUN1,
+	 .fun = PIN_GPIO,
 	 .strength = PAD_8MA,
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
+	 .output = 1,
+	 .data = 0,
 	 },
 	{
 	 .name = "LCD_VSYNC",
@@ -884,7 +886,7 @@ static struct pin_desc mx28evk_ssp1_pins[] = {
 	 .drive 	= 1,
 	 .pull 		= 1,
 	 },
-	{
+	/*{
 	 .name	= "SSP1_DETECT",
 	 .id	= PINID_GPMI_RDY0,
 	 .fun	= PIN_FUN1,
@@ -893,7 +895,7 @@ static struct pin_desc mx28evk_ssp1_pins[] = {
 	 .pullup	= 0,
 	 .drive 	= 1,
 	 .pull 		= 0,
-	 },
+	 },*/
 	{
 	 .name	= "SSP1_SCK",
 	 .id	= PINID_GPMI_WRN,
@@ -1007,7 +1009,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .pullup   = 0,
 	 .drive    = !0
 	 },
-	{
+	/*{
 	 .name     = "GPMI RDY0",
 	 .id       = PINID_GPMI_RDY0,
 	 .fun      = PIN_FUN1,
@@ -1015,7 +1017,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
 	 .drive    = !0
-	 },
+	 },*/
 	{
 	 .name     = "GPMI RDY1",
 	 .id       = PINID_GPMI_RDY1,
