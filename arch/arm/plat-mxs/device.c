@@ -210,6 +210,7 @@ static struct platform_device mxs_fec[] = {
 		.release = mxs_nop_release,
 		},
 	},
+#if defined(CONFIG_FEC2)
 	{
 	.name = "fec",
 	.id = 1,
@@ -217,6 +218,7 @@ static struct platform_device mxs_fec[] = {
 		.release = mxs_nop_release,
 		},
 	},
+#endif
 };
 #endif
 

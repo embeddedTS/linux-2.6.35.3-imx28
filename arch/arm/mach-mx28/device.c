@@ -843,10 +843,15 @@ static void __init mx28_init_fec(void)
 			return;
 		}
 
+		if(0 == (val & 0xFFFFFF)) {
+			val = (unsigned short) __raw_readl(
+			  IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_OPSn(2));
+			val |= 0x4f0000;
+		}
 		pfec = (struct fec_platform_data *)pdev->dev.platform_data;
 		pfec->mac[0] = 0x00;
-		pfec->mac[1] = 0x04;
-		pfec->mac[2] = (val >> 24) & 0xFF;
+		pfec->mac[1] = 0xd0;
+		pfec->mac[2] = 0x69;
 		pfec->mac[3] = (val >> 16) & 0xFF;
 		pfec->mac[4] = (val >> 8) & 0xFF;
 		pfec->mac[5] = (val >> 0) & 0xFF;
@@ -930,8 +935,8 @@ static void __init mx28_init_l2switch(void)
 	pswitch = (struct switch_platform_data *)pdev->dev.platform_data;
 	pfec = pswitch->fec_enet;
 	pfec->mac[0] = 0x00;
-	pfec->mac[1] = 0x04;
-	pfec->mac[2] = (val >> 24) & 0xFF;
+	pfec->mac[1] = 0xd0;
+	pfec->mac[2] = 0x69;
 	pfec->mac[3] = (val >> 16) & 0xFF;
 	pfec->mac[4] = (val >> 8) & 0xFF;
 	pfec->mac[5] = (val >> 0) & 0xFF;
