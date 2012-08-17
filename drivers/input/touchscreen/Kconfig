@@ -322,12 +322,6 @@ config TSLCD_NEGY
 	  Say Y here if the Y axis of touch screen is inverted.  This can
 	  also be passed to the module as "negy"
 
-config TSLCD_SWAPXY
-	bool "Swap horizontal and vertical axes"
-	help
-	  Say Y here if horizonal and vertical axes of touchscreen are swapped.
-	  This can also be passed to the module as "swapxy"
-
 endif
 
 

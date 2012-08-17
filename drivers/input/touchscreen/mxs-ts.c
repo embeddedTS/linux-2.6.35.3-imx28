@@ -3,6 +3,7 @@
  *
  * Author: Vitaly Wool <vital@embeddedalley.com>
  *
+ * Copyright 2012 Technologic Systems
  * Copyright 2008-2010 Freescale Semiconductor, Inc.
  * Copyright 2008 Embedded Alley Solutions, Inc All Rights Reserved.
  */
@@ -30,7 +31,24 @@
 #include <mach/device.h>
 #include <mach/regs-lradc.h>
 
+MODULE_DESCRIPTION("TS-LCD");                                                            
+MODULE_LICENSE("GPL");                                                                   
+
 #define TOUCH_DEBOUNCE_TOLERANCE	100
+
+static int negx =             
+#ifdef CONFIG_TSLCD_NEGX 
+                        0;    
+#else                         
+                        1;    
+#endif                        
+static int negy =             
+#ifdef CONFIG_TSLCD_NEGY 
+                        0;    
+#else                         
+                        1;    
+#endif                        
+static int xmin = -0xf, xmax = 0xf20, ymin = 0xa, ymax = 0xed0;
 
 struct mxs_ts_info {
 	int touch_irq;
@@ -241,6 +259,8 @@ static irqreturn_t ts_handler(int irq, void *dev_id)
 		BM_LRADC_CHn_VALUE;
 	y_plus = __raw_readl(info->base + HW_LRADC_CHn(info->y_plus_chan)) &
 		BM_LRADC_CHn_VALUE;
+	if(negx) x_plus = 4095 - x_plus;
+	if(negy) y_plus = 4095 - y_plus;
 
 	/* pressed? */
 	if (__raw_readl(info->base + HW_LRADC_STATUS) &
@@ -279,8 +299,8 @@ static int __devinit mxs_ts_probe(struct platform_device *pdev)
 
 	idev->name = "MXS touchscreen";
 	idev->evbit[0] = BIT(EV_ABS);
-	input_set_abs_params(idev, ABS_X, 0, 0xFFF, 0, 0);
-	input_set_abs_params(idev, ABS_Y, 0, 0xFFF, 0, 0);
+	input_set_abs_params(idev, ABS_X, xmin, xmax, 0, 0);
+	input_set_abs_params(idev, ABS_Y, ymin, ymax, 0, 0);
 	input_set_abs_params(idev, ABS_PRESSURE, 0, 1, 0, 0);
 
 	ret = input_register_device(idev);
@@ -462,3 +482,16 @@ static void __exit mxs_ts_exit(void)
 
 module_init(mxs_ts_init);
 module_exit(mxs_ts_exit);
+
+module_param(negx,bool, 0644);            
+module_param(negy,bool, 0644);            
+module_param(xmin, int, 0644);
+module_param(xmax, int, 0644);
+module_param(ymin, int, 0644);
+module_param(ymax, int, 0644);
+MODULE_PARM_DESC(negx, "Reverse X axis"); 
+MODULE_PARM_DESC(negy, "Reverse Y axis"); 
+MODULE_PARM_DESC(xmin, "Xmin calibration"); 
+MODULE_PARM_DESC(xmax, "Xmax calibration"); 
+MODULE_PARM_DESC(ymin, "Ymin calibration"); 
+MODULE_PARM_DESC(ymax, "Ymax calibration"); 
