@@ -858,6 +858,11 @@ static void __init mx28_init_fec(void)
 
 		mxs_add_device(pdev, 2);
 	}
+	__raw_writel(BM_OCOTP_CTRL_RD_BANK_OPEN,
+			IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL_CLR);
+	while (BM_OCOTP_CTRL_BUSY &
+		__raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL))
+		udelay(10);
 }
 #else
 static void __init mx28_init_fec(void)
