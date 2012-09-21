@@ -909,7 +909,7 @@ static struct pin_desc mx28evk_ssp1_pins[] = {
 };
 
 
-int enable_gpmi = { 0 };
+int enable_gpmi = { 1 };
 static int __init gpmi_setup(char *__unused)
 {
 	enable_gpmi = 1;
