@@ -894,6 +894,7 @@ static int emi_set_rate(struct clk *clk, unsigned long rate)
 	       (unsigned int)mxs_ram_freq_scale_end -
 	       (unsigned int)mxs_ram_freq_scale);
 #ifdef CONFIG_MEM_mDDR
+	/* TS products should not be using this, not calibrated */
 	if (rate <= 24000000) {
 		emi.emi_div = 20;
 		emi.frac_div = 18;
@@ -912,18 +913,18 @@ static int emi_set_rate(struct clk *clk, unsigned long rate)
 		}
 #else
 	if (rate <= 133000000) {
-		emi.emi_div = 3;
-		emi.frac_div = 22;
+		emi.emi_div = 3; /* 130MHz */
+		emi.frac_div = 22; /* 392Mhz */
 		emi.new_freq = 133;
 		DDR2EmiController_EDE1116_133MHz();
 	} else if (rate <= 166000000) {
-		emi.emi_div = 2;
-		emi.frac_div = 27;
+		emi.emi_div = 2; /* 160Mhz */
+		emi.frac_div = 27; /* 320Mhz */
 		emi.new_freq = 166;
 		DDR2EmiController_EDE1116_166MHz();
 	} else {
-		emi.emi_div = 2;
-		emi.frac_div = 22;
+		emi.emi_div = 2; /* 196Mhz */
+		emi.frac_div = 22; /* 392Mhz */
 		emi.new_freq = 200;
 		DDR2EmiController_EDE1116_200MHz();
 		}

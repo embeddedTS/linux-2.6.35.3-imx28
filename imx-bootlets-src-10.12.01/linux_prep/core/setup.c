@@ -166,13 +166,29 @@ static void find_command_lines (void)
 
 static u32 get_sdram_size (void)
 {
+	unsigned int i, j;
+	volatile unsigned int *loc;
+#if 0
 	u32 row, column, csmap, size;
 	u32 cs = 0;
+#endif
 
 #ifdef SDRAM_SIZE
 	return SDRAM_SIZE;
 #endif
+	loc = (volatile unsigned int *) 0x40000000;
+	for(i = 0; i < 16; i++) 
+	  loc[(i*0x01000000)/4] = i;
+	for(i = 0; i < 16; i++) {
+		j = loc[(i*0x01000000)/4];
+		if(i != j) {
+			*(unsigned int *) 0x800e0074 = 0x0f02020a;
+			return 0x08000000;
+		}
+	}
+	return 0x10000000;
 
+#if 0
 	row = MAX_ROW -
 	      ((HW_DRAM_CTL10_RD() & BM_DRAM_CTL10_ADDR_PINS) >> 16);
 
@@ -193,6 +209,7 @@ static u32 get_sdram_size (void)
 	size = cs * 4 * (1 << row) * (1 << column) * 2;
 
 	return size;
+#endif
 }
 
 /*

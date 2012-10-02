@@ -94,6 +94,9 @@ void test_emi_change()
 
 void DDR2EmiController_EDE1116_133MHz(void)
 {
+	static __iomem unsigned int  *emi_virt_base;
+	emi_virt_base = ioremap(0x800e0000, 4096);
+
 	DRAM_REG[0] = 0x00000000;
 	DRAM_REG[1] = 0x00000000;
 	DRAM_REG[2] = 0x00000000;
@@ -123,7 +126,8 @@ void DDR2EmiController_EDE1116_133MHz(void)
 	DRAM_REG[26] = 0x00010101;
 	DRAM_REG[27] = 0x01010101;
 	DRAM_REG[28] = 0x000f0f01;
-	DRAM_REG[29] = 0x0f02020a;
+	//DRAM_REG[29] = 0x0f02020a;
+	DRAM_REG[29] = emi_virt_base[29];
 	DRAM_REG[30] = 0x00000000;
 	DRAM_REG[31] = 0x00010101;
 	DRAM_REG[32] = 0x00000100;
@@ -135,9 +139,9 @@ void DDR2EmiController_EDE1116_133MHz(void)
 	DRAM_REG[38] = 0x04003603;
 	DRAM_REG[39] = 0x070000c8;
 	DRAM_REG[40] = 0x0200682b;
-	DRAM_REG[41] = 0x00020208;
-	DRAM_REG[42] = 0x00246c06;
-	DRAM_REG[43] = 0x02110409;
+	DRAM_REG[41] = 0x00020308;
+	DRAM_REG[42] = 0x00246c07;
+	DRAM_REG[43] = 0x031a01c1;
 	DRAM_REG[44] = 0x01020202;
 	DRAM_REG[45] = 0x00c80013;
 	DRAM_REG[46] = 0x00000000;
@@ -285,10 +289,14 @@ void DDR2EmiController_EDE1116_133MHz(void)
 	DRAM_REG[188] = 0x00000000;
 	DRAM_REG[189] = 0xffffffff;
 
+	iounmap(emi_virt_base);
+
 }
 
 void DDR2EmiController_EDE1116_166MHz(void)
 {
+	static __iomem unsigned int  *emi_virt_base;
+	emi_virt_base = ioremap(0x800e0000, 4096);
 
 	DRAM_REG[0] = 0x00000000;
 	DRAM_REG[1] = 0x00000000;
@@ -319,7 +327,8 @@ void DDR2EmiController_EDE1116_166MHz(void)
 	DRAM_REG[26] = 0x00010101;
 	DRAM_REG[27] = 0x01010101;
 	DRAM_REG[28] = 0x000f0f01;
-	DRAM_REG[29] = 0x0f02020a;
+	//DRAM_REG[29] = 0x0f02020a;
+	DRAM_REG[29] = emi_virt_base[29];
 	DRAM_REG[30] = 0x00000000;
 	DRAM_REG[31] = 0x00010101;
 	DRAM_REG[32] = 0x00000100;
@@ -333,7 +342,7 @@ void DDR2EmiController_EDE1116_166MHz(void)
 	DRAM_REG[40] = 0x02008236;
 	DRAM_REG[41] = 0x0002030a;
 	DRAM_REG[42] = 0x002d8908;
-	DRAM_REG[43] = 0x0316050e;
+	DRAM_REG[43] = 0x03200224;
 	DRAM_REG[44] = 0x02030202;
 	DRAM_REG[45] = 0x00c80017;
 	DRAM_REG[46] = 0x00000000;
@@ -481,10 +490,15 @@ void DDR2EmiController_EDE1116_166MHz(void)
 	DRAM_REG[188] = 0x00000000;
 	DRAM_REG[189] = 0xffffffff;
 
+	iounmap(emi_virt_base);
+
 }
 
 void DDR2EmiController_EDE1116_200MHz(void)
 {
+	static __iomem unsigned int  *emi_virt_base;
+	emi_virt_base = ioremap(0x800e0000, 4096);
+
 	DRAM_REG[0] = 0x00000000;
 	DRAM_REG[1] = 0x00000000;
 	DRAM_REG[2] = 0x00000000;
@@ -514,7 +528,8 @@ void DDR2EmiController_EDE1116_200MHz(void)
 	DRAM_REG[26] = 0x00010101;
 	DRAM_REG[27] = 0x01010101;
 	DRAM_REG[28] = 0x000f0f01;
-	DRAM_REG[29] = 0x0f02020a;
+	//DRAM_REG[29] = 0x0f02020a;
+	DRAM_REG[29] = emi_virt_base[29];
 	DRAM_REG[30] = 0x00000000;
 	DRAM_REG[31] = 0x00010101;
 	DRAM_REG[32] = 0x00000100;
@@ -524,11 +539,11 @@ void DDR2EmiController_EDE1116_200MHz(void)
 	DRAM_REG[36] = 0x01010000;
 	DRAM_REG[37] = 0x07080403;
 	DRAM_REG[38] = 0x06005003;
-	DRAM_REG[39] = 0x0a0000c8;
+	DRAM_REG[39] = 0x0b0000c8;
 	DRAM_REG[40] = 0x02009c40;
-	DRAM_REG[41] = 0x0002030c;
-	DRAM_REG[42] = 0x0036a609;
-	DRAM_REG[43] = 0x031a0612;
+	DRAM_REG[41] = 0x0002040d;
+	DRAM_REG[42] = 0x0036a60a;
+	DRAM_REG[43] = 0x042702a0;
 	DRAM_REG[44] = 0x02030202;
 	DRAM_REG[45] = 0x00c8001c;
 	DRAM_REG[46] = 0x00000000;
@@ -675,6 +690,8 @@ void DDR2EmiController_EDE1116_200MHz(void)
 	DRAM_REG[187] = 0x00000000;
 	DRAM_REG[188] = 0x00000000;
 	DRAM_REG[189] = 0xffffffff;
+
+	iounmap(emi_virt_base);
 
 }
 void mDDREmiController_24MHz(void)
