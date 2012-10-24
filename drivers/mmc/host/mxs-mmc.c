@@ -1151,7 +1151,12 @@ static int __init mxs_mmc_probe(struct platform_device *pdev)
 	mmc->f_max = mmc_data->max_clk;
 	mmc->caps = mmc_data->caps;
 	mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
-	mmc->caps |= MMC_CAP_SDIO_IRQ;
+	mmc->caps |= MMC_CAP_SDIO_IRQ | MMC_CAP_NEEDS_POLL;
+	/*                                                                      
+	 * XXX: the TS-4600 does not use the card-detect pin
+	 * Because of this, we need to poll the card using the workqueue created
+	 * in the core/host.c file.
+	 */
 
 	/* Maximum block count requests. */
 	mmc->max_blk_size = 512;
