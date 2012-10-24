@@ -427,20 +427,24 @@ static void mx28_init_gpmi_nfc(void)
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_TS7600)
 #define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
+#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
 #define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
 #endif
 
 static int mxs_mmc_get_wp_ssp0(void)
 {
+#if 0
 	return gpio_get_value(MMC0_WP);
+#endif 
+	return 0;
 }
 
 static int mxs_mmc_hw_init_ssp0(void)
 {
 	int ret = 0;
 
+#if 0
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC0_WP, "mmc0_wp");
 	if (ret)
@@ -448,11 +452,12 @@ static int mxs_mmc_hw_init_ssp0(void)
 
 	gpio_set_value(MMC0_WP, 0);
 	gpio_direction_input(MMC0_WP);
-
+#endif
 	/* Configure POWER pin as gpio to drive power to MMC slot */
-	ret = gpio_request(MMC0_POWER, "mmc0_power");
+/*	ret = gpio_request(MMC0_POWER, "mmc0_power");
 	if (ret)
 		goto out_power;
+*/
 
 	gpio_direction_output(MMC0_POWER, 0);
 	mdelay(100);
@@ -460,15 +465,19 @@ static int mxs_mmc_hw_init_ssp0(void)
 	return 0;
 
 out_power:
+#if 0
 	gpio_free(MMC0_WP);
+#endif
 out_wp:
 	return ret;
 }
 
 static void mxs_mmc_hw_release_ssp0(void)
 {
+#if 0
 	gpio_free(MMC0_POWER);
 	gpio_free(MMC0_WP);
+#endif
 
 }
 
@@ -494,15 +503,19 @@ static unsigned long mxs_mmc_setclock_ssp0(unsigned long hz)
 	return hz;
 }
 
-static int mxs_mmc_get_wp_ssp1(void)
+static int mxs_mmc_get_wp_ssp2(void)
 {
+#if 0
 	return gpio_get_value(MMC1_WP);
+#endif
+	return 0;
 }
 
-static int mxs_mmc_hw_init_ssp1(void)
+static int mxs_mmc_hw_init_ssp2(void)
 {
 	int ret = 0;
 
+#if 0
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC1_WP, "mmc1_wp");
 	if (ret)
@@ -510,11 +523,14 @@ static int mxs_mmc_hw_init_ssp1(void)
 
 	gpio_set_value(MMC1_WP, 0);
 	gpio_direction_input(MMC1_WP);
+#endif
 
 	/* Configure POWER pin as gpio to drive power to MMC slot */
+/*
 	ret = gpio_request(MMC1_POWER, "mmc1_power");
 	if (ret)
 		goto out_power;
+*/
 
 	gpio_direction_output(MMC1_POWER, 0);
 	mdelay(100);
@@ -522,28 +538,32 @@ static int mxs_mmc_hw_init_ssp1(void)
 	return 0;
 
 out_power:
+#if 0
 	gpio_free(MMC1_WP);
+#endif
 out_wp:
 	return ret;
 }
 
-static void mxs_mmc_hw_release_ssp1(void)
+static void mxs_mmc_hw_release_ssp2(void)
 {
+#if 0
 	gpio_free(MMC1_POWER);
 	gpio_free(MMC1_WP);
+#endif
 }
 
-static void mxs_mmc_cmd_pullup_ssp1(int enable)
+static void mxs_mmc_cmd_pullup_ssp2(int enable)
 {
-	mxs_set_pullup(PINID_GPMI_RDY1, enable, "mmc1_cmd");
+	mxs_set_pullup(PINID_SSP0_DATA6, enable, "mmc1_cmd");
 }
 
-static unsigned long mxs_mmc_setclock_ssp1(unsigned long hz)
+static unsigned long mxs_mmc_setclock_ssp2(unsigned long hz)
 {
-	struct clk *ssp = clk_get(NULL, "ssp.1"), *parent;
+	struct clk *ssp = clk_get(NULL, "ssp.2"), *parent;
 
 	if (hz > 1000000)
-		parent = clk_get(NULL, "ref_io.0");
+		parent = clk_get(NULL, "ref_io.1");
 	else
 		parent = clk_get(NULL, "xtal.0");
 
@@ -595,6 +615,46 @@ static struct resource mmc0_resource[] = {
 };
 
 static struct mxs_mmc_platform_data mmc1_data = {
+	.hw_init	= mxs_mmc_hw_init_ssp2,
+	.hw_release	= mxs_mmc_hw_release_ssp2,
+	.get_wp		= mxs_mmc_get_wp_ssp2,
+	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp2,
+	.setclock	= mxs_mmc_setclock_ssp2,
+	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
+				| MMC_CAP_DATA_DDR,
+	.min_clk	= 400000,
+	.max_clk	= 48000000,
+	.read_uA        = 50000,
+	.write_uA       = 70000,
+	.clock_mmc = "ssp.2",
+	.power_mmc = NULL,
+};
+
+static struct resource mmc1_resource[] = {
+	{
+		.flags	= IORESOURCE_MEM,
+		.start	= SSP2_PHYS_ADDR,
+		.end	= SSP2_PHYS_ADDR + 0x2000 - 1,
+	},
+	{
+		.flags	= IORESOURCE_DMA,
+		.start	= MXS_DMA_CHANNEL_AHB_APBH_SSP2,
+		.end	= MXS_DMA_CHANNEL_AHB_APBH_SSP2,
+	},
+	{
+		.flags	= IORESOURCE_IRQ,
+		.start	= IRQ_SSP2_DMA,
+		.end	= IRQ_SSP2_DMA,
+	},
+	{
+		.flags	= IORESOURCE_IRQ,
+		.start	= IRQ_SSP2,
+		.end	= IRQ_SSP2,
+	},
+};
+
+#if 0
+static struct mxs_mmc_platform_data mmc1_data = {
 	.hw_init	= mxs_mmc_hw_init_ssp1,
 	.hw_release	= mxs_mmc_hw_release_ssp1,
 	.get_wp		= mxs_mmc_get_wp_ssp1,
@@ -632,6 +692,7 @@ static struct resource mmc1_resource[] = {
 		.end	= IRQ_SSP1,
 	},
 };
+#endif
 
 static void __init mx28_init_mmc(void)
 {
@@ -647,7 +708,7 @@ static void __init mx28_init_mmc(void)
 		mxs_add_device(pdev, 2);
 	}
 
-	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
+	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
 		pdev = mxs_get_device("mxs-mmc", 1);
 		if (pdev == NULL || IS_ERR(pdev))
 			return;
@@ -663,7 +724,8 @@ static void mx28_init_mmc(void)
 }
 #endif
 
-#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
+#if 0
+//#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
 static struct mxs_spi_platform_data spi_data = {
 	.clk = "ssp.2",
 };
