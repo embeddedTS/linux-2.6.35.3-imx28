@@ -718,6 +718,15 @@ static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 	fep->mii_timeout = 0;
 	init_completion(&fep->mdio_done);
 
+	/* This is required to force the driver to think that the non-existant
+	 * PHY has link, only when boards use the Marvell switch
+	 */
+	if(mii_id == 0x18) {
+		if(regnum == 0x0) return 0x3100;
+		if(regnum == 0x1) return 0x782d;
+		if(regnum == 0x4) return 0x1e1;
+		if(regnum == 0x5) return 0xc5e1;
+	}
 	/* start a read op */
 	writel(FEC_MMFR_ST | FEC_MMFR_OP_READ |
 		FEC_MMFR_PA(mii_id) | FEC_MMFR_RA(regnum) |
@@ -818,11 +827,13 @@ static int fec_enet_mii_probe(struct net_device *dev)
 
 static struct mii_bus *fec_enet_mii_init(struct platform_device *pdev)
 {
-	struct net_device *dev = platform_get_drvdata(pdev);
+	struct platform_device *enet_pdev = pdev->dev.platform_data;
+	struct net_device *dev = platform_get_drvdata(enet_pdev);
 	struct fec_enet_private *fep = netdev_priv(dev);
 	int err = -ENXIO, i;
 
 	fep->mii_timeout = 0;
+	clk_enable(fep->clk);
 
 	/*
 	 * Set MII speed to 2.5 MHz (= clk_get_rate() / 2 * phy_speed)
@@ -861,8 +872,10 @@ static struct mii_bus *fec_enet_mii_init(struct platform_device *pdev)
 
 	if (mdiobus_register(fep->mii_bus))
 		goto err_out_free_mdio_irq;
+	
+	clk_disable(fep->clk);
 
-	return fep->mii_bus;
+	return 0; //fep->mii_bus;
 
 err_out_free_mdio_irq:
 	kfree(fep->mii_bus->irq);
@@ -1508,7 +1521,7 @@ fec_probe(struct platform_device *pdev)
 
 	/* PHY reset should be done during clock on */
 	if (pdata && pdata->init)
-	ret = pdata->init();
+	  ret = pdata->init();
 	if (ret)
 		goto failed_platform_init;
 	/*
@@ -1527,7 +1540,7 @@ fec_probe(struct platform_device *pdev)
 	if (ret)
 		goto failed_init;
 
-	if (pdev->id == 0) {
+	/*if (pdev->id == 0) {
 		fec_mii_bus = fec_enet_mii_init(pdev);
 		if (IS_ERR(fec_mii_bus)) {
 			ret = -ENOMEM;
@@ -1535,7 +1548,7 @@ fec_probe(struct platform_device *pdev)
 		}
 	} else {
 		fep->mii_bus = fec_mii_bus;
-	}
+	}*/
 
 	if (fec_ptp_malloc_priv(&(fep->ptp_priv))) {
 		if (fep->ptp_priv) {
@@ -1652,12 +1665,24 @@ static struct platform_driver fec_driver = {
 	.resume  = fec_resume,
 };
 
+static struct platform_driver fec_mii_bus_driver = {
+	.driver = {
+		.name	= "fec_enet_mii_bus",
+		.owner	= THIS_MODULE,
+	},
+	.probe	= fec_enet_mii_init,
+	.remove	= __devexit_p(fec_enet_mii_remove),
+};
+
 static int __init
 fec_enet_module_init(void)
 {
+	int ret;
 	printk(KERN_INFO "FEC Ethernet Driver\n");
-
-	return platform_driver_register(&fec_driver);
+	ret = platform_driver_register(&fec_driver);
+	if(!ret)
+		return platform_driver_register(&fec_mii_bus_driver); //fec_driver);
+	return -ENODEV;
 }
 
 static void __exit

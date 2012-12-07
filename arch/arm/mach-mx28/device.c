@@ -829,6 +829,42 @@ static void __init mx28_init_rtc(void)
 }
 #endif
 
+/*This should all work with DSA, but DSA was never fully tested/working */
+static struct platform_device fec_enet_mac_device = {                              
+	.name = "fec", //Maybe mxs-fec?
+	.id = 0,
+};
+
+static struct platform_device fec_enet_mii_bus = {                                 
+        .name = "fec_enet_mii_bus",                                                
+	.dev.platform_data = &fec_enet_mac_device,
+};                                                                             
+                                                                               
+static struct dsa_chip_data mv88e6020_switch_chip_data = {
+	.mii_bus = &fec_enet_mii_bus.dev,
+	.port_names = {
+		"port0",
+		"port1",
+		NULL,
+		NULL,
+		NULL,
+		"cpu",
+	},
+};
+static struct dsa_platform_data mv88e6020_switch_data = {                       
+	.nr_chips = 1,
+	.netdev = &fec_enet_mac_device.dev,
+	.chip = &mv88e6020_switch_chip_data,
+};
+
+static struct platform_device mv88e6020_switch_device = {
+	.name		= "dsa",
+	.id		= 0,
+	.num_resources	= 0,
+	.dev.platform_data = &mv88e6020_switch_data,
+};                                                                             
+
+
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)
 static struct resource fec0_resource[] = {
 	{
@@ -882,44 +918,27 @@ static void __init mx28_init_fec(void)
 		__raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL))
 		udelay(10);
 
-	lookup = mxs_get_devices("mxs-fec");
-	if (lookup == NULL || IS_ERR(lookup))
-		return;
-
-	for (i = 0; i < lookup->size; i++) {
-		pdev = lookup->pdev + i;
-		val =  __raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) +
-						HW_OCOTP_CUSTn(pdev->id));
-		switch (pdev->id) {
-		case 0:
-			pdev->resource = fec0_resource;
-			pdev->num_resources = ARRAY_SIZE(fec0_resource);
-			pdev->dev.platform_data = &fec_pdata0;
-			break;
-		case 1:
-			pdev->resource = fec1_resource;
-			pdev->num_resources = ARRAY_SIZE(fec1_resource);
-			pdev->dev.platform_data = &fec_pdata1;
-			break;
-		default:
-			return;
-		}
-
-		if(0 == (val & 0xFFFFFF)) {
-			val = (unsigned short) __raw_readl(
-			  IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_OPSn(2));
-			val |= 0x4f0000;
-		}
-		pfec = (struct fec_platform_data *)pdev->dev.platform_data;
-		pfec->mac[0] = 0x00;
-		pfec->mac[1] = 0xd0;
-		pfec->mac[2] = 0x69;
-		pfec->mac[3] = (val >> 16) & 0xFF;
-		pfec->mac[4] = (val >> 8) & 0xFF;
-		pfec->mac[5] = (val >> 0) & 0xFF;
-
-		mxs_add_device(pdev, 2);
+	pdev = &fec_enet_mac_device;
+	pdev->resource = fec0_resource;
+	pdev->num_resources = ARRAY_SIZE(fec0_resource);
+	pdev->dev.platform_data = &fec_pdata0;
+	val =  __raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) +
+					HW_OCOTP_CUSTn(pdev->id));
+	if(0 == (val & 0xFFFFFF)) {
+		val = (unsigned short) __raw_readl(
+		  IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_OPSn(2));
+		val |= 0x4f0000;
 	}
+	pfec = (struct fec_platform_data *)pdev->dev.platform_data;
+	pfec->mac[0] = 0x00;
+	pfec->mac[1] = 0xd0;
+	pfec->mac[2] = 0x69;
+	pfec->mac[3] = (val >> 16) & 0xFF;
+	pfec->mac[4] = (val >> 8) & 0xFF;
+	pfec->mac[5] = (val >> 0) & 0xFF;
+	platform_device_register(&fec_enet_mii_bus);
+	platform_device_register(&fec_enet_mac_device);
+	platform_device_register(&mv88e6020_switch_device);
 	__raw_writel(BM_OCOTP_CTRL_RD_BANK_OPEN,
 			IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL_CLR);
 	while (BM_OCOTP_CTRL_BUSY &
