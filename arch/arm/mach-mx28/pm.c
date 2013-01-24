@@ -243,8 +243,8 @@ void mx28_pm_idle(void)
 
 static void mx28_pm_power_off(void)
 {
-	__raw_writel(BF_POWER_RESET_UNLOCK(0x3e77) | BM_POWER_RESET_PWD,
-		REGS_POWER_BASE + HW_POWER_RESET);
+	__raw_writel(BF_POWER_RESET_UNLOCK(0x3e77) | BM_POWER_RESET_PWD |
+	  BM_POWER_RESET_PWD_OFF, REGS_POWER_BASE + HW_POWER_RESET);
 }
 
 struct mx28_pswitch_state {
