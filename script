@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This function installs the boot stream named in $1
+# into the device named in $2 in partition number $3.
+function install_boot_stream() {
+    echo -e "\nInstalling boot stream $1 on $2$3..."
+    if [ -f ./mk_hdr.sh ]
+    then
+        mk_hdr="./mk_hdr.sh"
+    else
+        mk_hdr="mk_hdr.sh"
+    fi
+    $DEBUG $mk_hdr `sudo fdisk -lu $2 | awk '$5==53 {print $2}'` 1  > temp.bin
+    $DEBUG sudo dd if=temp.bin of=$2$3 ibs=512 conv=sync
+    $DEBUG sudo dd if=$1 of=$2$3 ibs=512 obs=512 seek=1 conv=sync
+    $DEBUG sync
+    rm temp.bin
+    echo -e "...finished installing boot stream on $2$3.\n"
+}
+
+install_boot_stream imx-bootlets-src-10.12.01/imx28_ivt_linux.sb /dev/sdb 2
+ mount /dev/sdb3 /mnt/host/
+INSTALL_MOD_PATH=/mnt/host/ make modules_install
+cd compat-wireless-3.6.8-1
+KMODPATH_ARG="INSTALL_MOD_PATH=/mnt/host" make install
+cd -
+umount /mnt/host
+sync
