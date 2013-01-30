@@ -25,40 +25,40 @@ all: build_prep gen_bootstream
 build_prep:
 
 
-gen_bootstream: linux_prep boot_prep power_prep linux.bd uboot.bd linux.bd uboot.bd updater.bd
+gen_bootstream: linux_prep boot_prep power_prep linux.bd linux.bd updater.bd
 	@echo "generating linux kernel boot stream image"
 ifeq "$(DFT_IMAGE)" "$(wildcard $(DFT_IMAGE))"
 	@echo "by using the rootfs/boot/zImage"
 	sed -i 's,[^ *]zImage.*;,\tzImage="$(DFT_IMAGE)";,' linux.bd
 	sed -i 's,[^ *]zImage.*;,\tzImage="$(DFT_IMAGE)";,' linux_ivt.bd
-	elftosb -z -c ./linux.bd -o i$(ARCH)_linux.sb
-	elftosb -z -f imx28 -c ./linux_ivt.bd -o i$(ARCH)_ivt_linux.sb
+	./elftosb -z -c ./linux.bd -o i$(ARCH)_linux.sb
+	./elftosb -z -f imx28 -c ./linux_ivt.bd -o i$(ARCH)_ivt_linux.sb
 
 	@echo "by using the rootfs/boot/u-boot"
 	sed -i 's,[^ *]u_boot.*;,\tu_boot="$(DFT_UBOOT)";,' uboot.bd
 	sed -i 's,[^ *]u_boot.*;,\tu_boot="$(DFT_UBOOT)";,' uboot_ivt.bd
-	elftosb -z -c ./uboot.bd -o i$(ARCH)_uboot.sb
-	elftosb -z -f imx28 -c ./uboot_ivt.bd -o i$(ARCH)_ivt_uboot.sb
+	./elftosb -z -c ./uboot.bd -o i$(ARCH)_uboot.sb
+	./elftosb -z -f imx28 -c ./uboot_ivt.bd -o i$(ARCH)_ivt_uboot.sb
 else
 	@echo "by using the pre-built kernel"
-	elftosb -z -c ./linux.bd -o i$(ARCH)_linux.sb
-	elftosb -z -f imx28 -c  ./linux_ivt.bd -o i$(ARCH)_ivt_linux.sb
+	./elftosb -z -c ./linux.bd -o i$(ARCH)_linux.sb
+	./elftosb -z -f imx28 -c  ./linux_ivt.bd -o i$(ARCH)_ivt_linux.sb
 
-	@echo "generating U-Boot boot stream image"
-	elftosb -z -c ./uboot.bd -o i$(ARCH)_uboot.sb
-	elftosb -z -f imx28 -c ./uboot_ivt.bd -o i$(ARCH)_ivt_uboot.sb
+	@#echo "generating U-Boot boot stream image"
+	@#elftosb -z -c ./uboot.bd -o i$(ARCH)_uboot.sb
+	@#elftosb -z -f imx28 -c ./uboot_ivt.bd -o i$(ARCH)_ivt_uboot.sb
 endif
-	#@echo "generating kernel bootstream file sd_mmc_bootstream.raw"
-	#Please use cfimager to burn xxx_linux.sb. The below way will no
-	#work at imx28 platform.
-	#rm -f sd_mmc_bootstream.raw
-	#dd if=/dev/zero of=sd_mmc_bootstream.raw bs=512 count=4
-	#dd if=imx233_linux.sb of=sd_mmc_bootstream.raw ibs=512 seek=4 \
+	@#@echo "generating kernel bootstream file sd_mmc_bootstream.raw"
+	@#Please use cfimager to burn xxx_linux.sb. The below way will no
+	@#work at imx28 platform.
+	@#rm -f sd_mmc_bootstream.raw
+	@#dd if=/dev/zero of=sd_mmc_bootstream.raw bs=512 count=4
+	@#dd if=imx233_linux.sb of=sd_mmc_bootstream.raw ibs=512 seek=4 \
 	#conv=sync,notrunc
-	@echo "To install bootstream onto SD/MMC card, type: sudo dd \
-	if=sd_mmc_bootstream.raw of=/dev/sdXY where X is the correct letter \
-	for your sd or mmc device (to check, do a ls /dev/sd*) and Y \
-	is the partition number for the bootstream"
+	@#echo "To install bootstream onto SD/MMC card, type: sudo dd \
+	#if=sd_mmc_bootstream.raw of=/dev/sdXY where X is the correct letter \
+	#for your sd or mmc device (to check, do a ls /dev/sd*) and Y \
+	#is the partition number for the bootstream"
 
 # TODO
 #	@echo "generating uuc boot stream image"
@@ -73,8 +73,8 @@ boot_prep:
 
 updater: linux_prep boot_prep power_prep
 	@echo "Build updater firmware"
-	elftosb -z -c ./updater.bd -o updater.sb
-	elftosb -z -f imx28 -c ./updater_ivt.bd -o updater_ivt.sb
+	./elftosb -z -c ./updater.bd -o updater.sb
+	./elftosb -z -f imx28 -c ./updater_ivt.bd -o updater_ivt.sb
 linux_prep:
 ifneq "$(CMDLINE1)" ""
 	@echo "by using environment command line"

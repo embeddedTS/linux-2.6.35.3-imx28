@@ -18,11 +18,38 @@ function install_boot_stream() {
     echo -e "...finished installing boot stream on $2$3.\n"
 }
 
-install_boot_stream imx-bootlets-src-10.12.01/imx28_ivt_linux.sb /dev/sdb 2
- mount /dev/sdb3 /mnt/host/
-INSTALL_MOD_PATH=/mnt/host/ make modules_install
-cd compat-wireless-3.6.8-1
-KMODPATH_ARG="INSTALL_MOD_PATH=/mnt/host" make install
+if [ $# -ne 1 ] ; then
+  echo "Usage: $0 <device>"
+  echo "Where <device> is name of SD card dev node, e.g. sda, sdb, mmcblk0, etc."
+  exit 1
+fi
+
+if [[ $UID != 0 ]]; then
+  echo "Please run this script as root:"
+  echo "sudo $0 $*"
+  exit 1
+fi
+
+echo "Building external wireless modules"
+cd compat-wireless-3.6.8-1/
+./scripts/driver-select ts &&\
+make &&\
 cd -
-umount /mnt/host
+
+echo "Building final bootstream"
+cp arch/arm/boot/Image imx-bootlets-src-10.12.01/ &&\
+cd imx-bootlets-src-10.12.01/ &&\
+make &&\
+cd -
+
+echo "Installing bootstream to SD card"
+mkdir mount_point/ &&\
+install_boot_stream imx-bootlets-src-10.12.01/imx28_ivt_linux.sb /dev/$1 2 &&\
+mount /dev/$13 mount_point/ &&\
+INSTALL_MOD_PATH=mount_point/ make modules_install &&\
+cd compat-wireless-3.6.8-1 &&\
+KMODPATH_ARG="INSTALL_MOD_PATH=mount_point" make install &&\
+cd -
+umount mount_point
+rmdir mount_point
 sync

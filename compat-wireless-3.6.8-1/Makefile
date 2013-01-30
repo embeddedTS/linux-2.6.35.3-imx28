@@ -194,29 +194,6 @@ install-scripts:
 		echo Running iwl-enable iwlwifi...;\
 		$(DESTDIR)/usr/sbin/iwl-enable iwlwifi ;\
 	fi
-	@# If on distributions like Mandriva which like to
-	@# compress their modules this will find out and do
-	@# it for you. Reason is some old version of modutils
-	@# won't know mac80211.ko should be used instead of
-	@# mac80211.ko.gz
-	@./scripts/compress_modules
-	@# Mandrake doesn't have a depmod.d/ conf file to prefer
-	@# the updates/ dir which is what we use so we add one for it
-	@# (or any other distribution that doens't have this).
-	@./scripts/check_depmod
-	@# Udev stuff needed for the new compat_firmware_class.
-	@./compat/scripts/compat_firmware_install
-	@/sbin/depmod -a
-	@echo 
-	@echo Now run:
-	@echo 
-	@echo sudo make unload to unload all: wireless, bluetooth and ethernet modules
-	@echo sudo make wlunload to unload wireless modules
-	@echo sudo make btunload to unload bluetooth modules
-	@echo
-	@echo Run sudo modprobe 'driver-name' to load your desired driver. 
-	@echo If unsure reboot.
-	@echo
 
 uninstall:
 	@# New location, matches upstream
