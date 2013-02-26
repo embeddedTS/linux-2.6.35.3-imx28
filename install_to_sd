@@ -37,7 +37,7 @@ make &&\
 cd -
 
 echo "Building final bootstream"
-cp arch/arm/boot/Image imx-bootlets-src-10.12.01/ &&\
+cp arch/arm/boot/zImage imx-bootlets-src-10.12.01/ &&\
 cd imx-bootlets-src-10.12.01/ &&\
 make &&\
 cd -
