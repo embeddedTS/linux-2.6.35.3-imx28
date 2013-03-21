@@ -1041,7 +1041,7 @@ void init_clock()
 	/*choose ref_emi*/
 	HW_CLKCTRL_CLKSEQ_CLR(BM_CLKCTRL_CLKSEQ_BYPASS_EMI);
 
-	printf("FRAC 0x%x\r\n" , HW_CLKCTRL_FRAC0_RD());
+	//printf("FRAC 0x%x\r\n" , HW_CLKCTRL_FRAC0_RD());
 
 }
 
@@ -1256,7 +1256,7 @@ void change_cpu_freq()
 {
 	int value = 0;
 
-	printf("power 0x%x\r\n" , HW_POWER_VDDDCTRL_RD());
+	//printf("power 0x%x\r\n" , HW_POWER_VDDDCTRL_RD());
 	value |= BF_POWER_VDDDCTRL_TRG(28);
 	value |= BF_POWER_VDDDCTRL_BO_OFFSET(7);
 	value |= BF_POWER_VDDDCTRL_LINREG_OFFSET(2);
@@ -1267,7 +1267,7 @@ void change_cpu_freq()
 
 	delay(10000);
 
-	printf("Frac 0x%x\r\n", HW_CLKCTRL_FRAC0_RD());
+	//printf("Frac 0x%x\r\n", HW_CLKCTRL_FRAC0_RD());
 
 	value = HW_CLKCTRL_FRAC0_RD();
 	value &= ~BM_CLKCTRL_FRAC0_CPUFRAC;
@@ -1282,7 +1282,7 @@ void change_cpu_freq()
 	HW_CLKCTRL_HBUS_CLR(((~3)&BM_CLKCTRL_HBUS_DIV));
 
 	delay(10000);
-	printf("start change cpu freq\r\n");
+	//printf("start change cpu freq\r\n");
 
 	value = HW_CLKCTRL_CPU_RD();
 	value &= ~BM_CLKCTRL_CPU_DIV_CPU;
@@ -1291,8 +1291,8 @@ void change_cpu_freq()
 
 	HW_CLKCTRL_CLKSEQ_CLR(BM_CLKCTRL_CLKSEQ_BYPASS_CPU);
 
-	printf("hbus 0x%x\r\n" , HW_CLKCTRL_HBUS_RD());
-	printf("cpu 0x%x\r\n" , HW_CLKCTRL_CPU_RD());
+	//printf("hbus 0x%x\r\n" , HW_CLKCTRL_HBUS_RD());
+	//printf("cpu 0x%x\r\n" , HW_CLKCTRL_CPU_RD());
 
 }
 void poweron_vdda()
@@ -1323,8 +1323,8 @@ int _start(int arg)
 	/* set to ddr2 mode*/
 	HW_PINCTRL_EMI_DS_CTRL_SET(BW_PINCTRL_EMI_DS_CTRL_DDR_MODE(0x3));
 #endif
-	printf(__DATE__ __TIME__);
-	printf("\r\n");
+	//printf(__DATE__ __TIME__);
+	//printf("\r\n");
 	/*printf("Fuse 0x%x\r\n",HW_OCOTP_CUSTCAP_RD());*/
 
 	poweron_pll();
@@ -1354,7 +1354,7 @@ int _start(int arg)
 	 * mDDR and other speeds not calibrated 
 	 */
 	DDR2EmiController_EDE1116_200MHz();
-	printf("memory type is DDR2\n");
+	//printf("memory type is DDR2\n");
 #endif
 	value = HW_DRAM_CTL17_RD();
 	value &= ~BM_DRAM_CTL17_SREFRESH;
@@ -1365,7 +1365,7 @@ int _start(int arg)
 	HW_DRAM_CTL16_WR(value);
 
 	//Wait for DDR ready
-	printf("Wait for ddr ready 1");
+	//printf("Wait for ddr ready 1");
 	while(!(HW_DRAM_CTL58_RD()&0x100000));
 
 #if 0
@@ -1386,8 +1386,9 @@ int _start(int arg)
 #endif
 
 	/*Test Memory;*/
-	printf("start test memory accress\r\n");
-	printf("ddr2 0x%x\r\n", pTest);
+	/*XXX: insert check here for soft jumper to run longer ram test?*/
+	//printf("start test memory accress\r\n");
+	//printf("ddr2 0x%x\r\n", pTest);
 	for (i = 0; i < 1000; i++)
 		*pTest++ = i;
 
@@ -1399,7 +1400,7 @@ int _start(int arg)
 		}
 		pTest++;
 	}
-	printf("finish simple test\r\n");
+	//printf("finish simple test\r\n");
 	return 0;
 }
 

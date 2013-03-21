@@ -243,12 +243,15 @@ int _start( void )
 
 #endif
 
+	printf("\r\n>> TS-BOOTROM - built "__DATE__" "__TIME__"\r\n");
+	printf(">> Copyright (c) 2013, Technologic Systems\r\n");
+
 	PowerPrep_CPUClock2XTAL();
 	PowerPrep_ClearAutoRestart();
 
 	hw_power_SetPowerClkGate( false );
 
-	printf("\r\nPowerPrep start initialize power...\r\n");
+	//printf("\r\nPowerPrep start initialize power...\r\n");
 	HW_POWER_VDDDCTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
 	HW_POWER_VDDACTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
 	HW_POWER_VDDIOCTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
@@ -384,9 +387,8 @@ int PowerPrep_ConfigurePowerSource( void )
 			else {
 				BF_CLR(LRADC_CONVERSION, AUTOMATIC);
 				BF_WR(POWER_BATTMONITOR, BATT_VAL,0);
-				printf("\r\nNo battery or bad battery\
-					detected!!!.Disabling battery\
-					voltage measurements./r/n");
+				//printf("\r\nNo battery or bad battery detected!!!\r\n");
+				//printf("\r\nDisabling battery voltage measurements.\r\n");
 			}
 			iReturnValue = PowerPrep_5vBoot();
 #ifndef MXS_VBUS_CURRENT_DRAW
@@ -1120,8 +1122,8 @@ void PowerPrep_EnableOutputRailProtection( void )
 bool PowerPrep_IsBatteryReady( void )
 {
 	unsigned int BattVal = hw_power_GetBatteryVoltage();
-	printf("Battery Voltage = ");
-	PowerPrep_PrintBatteryVoltage(BattVal);
+	//printf("Battery Voltage = ");
+	//PowerPrep_PrintBatteryVoltage(BattVal);
 	if(hw_power_GetBatteryVoltage() >=
 		MINIMUM_SAFE_BOOTING_BATTERY_VOLTAGE_MV)
 		return true;
