@@ -201,7 +201,7 @@ static void free_bl(struct mxs_platform_bl_data *data)
 	__raw_writel(BF_PINCTRL_DOUT3_DOUT(1 << 30), REGS_PINCTRL_BASE + HW_PINCTRL_DOUT3_CLR);
 	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
 
-	clk_disable(pwm_clk);
+	//clk_disable(pwm_clk);
 	clk_put(pwm_clk);
 }
 
@@ -218,7 +218,8 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 	if (suspended)
 		intensity = 0;
 
-	scaled_int = (360-((intensity*22)/10));
+	scaled_int = ((intensity*2)+170);
+	if(!intensity) scaled_int = 0;
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(scaled_int) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
 		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
@@ -232,7 +233,7 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 
 static struct mxs_platform_bl_data bl_data = {
 	.bl_max_intensity = 100,
-	.bl_default_intensity = 50,
+	.bl_default_intensity = 100,
 	.bl_cons_intensity = 50,
 	.init_bl = init_bl,
 	.free_bl = free_bl,
