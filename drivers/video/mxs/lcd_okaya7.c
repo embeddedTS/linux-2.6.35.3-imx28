@@ -177,13 +177,13 @@ static int init_bl(struct mxs_platform_bl_data *data)
 
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(400) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
+		     REGS_PWM_BASE + HW_PWM_ACTIVEn(4));
 	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
 		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
 		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
 		     BF_PWM_PERIODn_PERIOD(599),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
-	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
+		     REGS_PWM_BASE + HW_PWM_PERIODn(4));
+	__raw_writel(BM_PWM_CTRL_PWM4_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
 	__raw_writel(BF_PINCTRL_DOUT3_DOUT(1 << 30), REGS_PINCTRL_BASE + HW_PINCTRL_DOUT3_SET);
 	return 0;
 }
@@ -192,14 +192,14 @@ static void free_bl(struct mxs_platform_bl_data *data)
 {
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(400) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
+		     REGS_PWM_BASE + HW_PWM_ACTIVEn(4));
 	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
 		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
 		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
 		     BF_PWM_PERIODn_PERIOD(599),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
+		     REGS_PWM_BASE + HW_PWM_PERIODn(4));
 	__raw_writel(BF_PINCTRL_DOUT3_DOUT(1 << 30), REGS_PINCTRL_BASE + HW_PINCTRL_DOUT3_CLR);
-	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
+	__raw_writel(BM_PWM_CTRL_PWM4_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
 
 	//clk_disable(pwm_clk);
 	clk_put(pwm_clk);
@@ -222,12 +222,12 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 	if(!intensity) scaled_int = 0;
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(scaled_int) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
+		     REGS_PWM_BASE + HW_PWM_ACTIVEn(4));
 	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
 		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
 		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
 		     BF_PWM_PERIODn_PERIOD(399),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
+		     REGS_PWM_BASE + HW_PWM_PERIODn(4));
 	return 0;
 }
 
