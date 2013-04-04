@@ -34,7 +34,9 @@
 
 #include <asm/mach/map.h>
 
+#include <mach/system.h>
 #include <mach/hardware.h>
+#include <mach/regs-pwm.h>
 #include <mach/regs-timrot.h>
 #include <mach/regs-lradc.h>
 #include <mach/regs-ocotp.h>
@@ -423,6 +425,23 @@ static void mx28_init_gpmi_nfc(void)
 {
 }
 #endif
+
+static void mx28_init_fpgaclk(void) 
+{
+	struct clk *pwm_clk = clk_get(NULL, "pwm");
+	clk_enable(pwm_clk);
+	mxs_reset_block(REGS_PWM_BASE, 1);
+	                                                                                       
+	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(1) |
+		BF_PWM_ACTIVEn_ACTIVE(0),
+		REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
+	__raw_writel(BF_PWM_PERIODn_CDIV(0) |   /* divide by 64 */
+		BF_PWM_PERIODn_INACTIVE_STATE(2) | /* low */
+		BF_PWM_PERIODn_ACTIVE_STATE(3) |   /* high */
+		BF_PWM_PERIODn_PERIOD(1),
+		REGS_PWM_BASE + HW_PWM_PERIODn(2));
+	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
+}
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_TS7600)
@@ -1659,6 +1678,7 @@ static void mx28_init_otp(void)
 
 int __init mx28_device_init(void)
 {
+	mx28_init_fpgaclk();
 	mx28_init_dma();
 	mx28_init_viim();
 	mx28_init_duart();

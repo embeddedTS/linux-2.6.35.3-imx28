@@ -426,6 +426,14 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
 	 },
+	{
+	 .name = "FPGA_CLK",
+	 .id = PINID_PWM4,
+	 .fun = PIN_FUN1,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 },
 #endif
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 	/* Configurations of SSP0 SD/MMC port pins */
@@ -1136,8 +1144,8 @@ static struct pin_desc mx28evk_spi_pins[] = {
 int mx28evk_enet_gpio_init(void)
 {
 	/* pwr */
-	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), "ENET_PWR");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
+	//gpio_request(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), "ENET_PWR");
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
 
 	/* reset phy */
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
@@ -1157,10 +1165,10 @@ int mx28evk_enet_gpio_init(void)
 void mx28evk_enet_io_lowerpower_enter(void)
 {
 	int i;
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 1);
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
-	gpio_request(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), "ETH_INT");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), 0);
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 1);
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
+	//gpio_request(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), "ETH_INT");
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), 0);
 
 	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_pins); i++) {
 		mxs_release_pin(mx28evk_eth_pins[i].id,
@@ -1176,9 +1184,9 @@ void mx28evk_enet_io_lowerpower_enter(void)
 void mx28evk_enet_io_lowerpower_exit(void)
 {
 	int i;
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
-	gpio_free(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK));
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
+	//gpio_free(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK));
 	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_pins); i++) {
 		gpio_free(MXS_PIN_TO_GPIO(mx28evk_eth_pins[i].id));
 		mxs_request_pin(mx28evk_eth_pins[i].id,

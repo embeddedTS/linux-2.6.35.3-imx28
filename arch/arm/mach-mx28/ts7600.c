@@ -81,7 +81,8 @@ static void __init fixup_board(struct machine_desc *desc, struct tag *tags,
 	mx28_set_input_clk(24000000, 24000000, 32000, 50000000);
 }
 
-#if defined(CONFIG_LEDS_MXS) || defined(CONFIG_LEDS_MXS_MODULE)
+#if 0
+//#if defined(CONFIG_LEDS_MXS) || defined(CONFIG_LEDS_MXS_MODULE)
 static struct mxs_pwm_led  mx28evk_led_pwm[2] = {
 	[0] = {
 		.name = "led-pwm0",
@@ -149,7 +150,7 @@ static void __init mx28evk_init_machine(void)
 	mx28evk_device_init();
 }
 
-MACHINE_START(MX28EVK, "Freescale MX28EVK board")
+MACHINE_START(MX28EVK, "Technologic Systems TS-7600/TS-4600")
 	.phys_io	= 0x80000000,
 	.io_pg_offst	= ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params	= 0x40000100,
