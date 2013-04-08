@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2009-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ power_fiq_start:
 	ldr r12, [r9, #HW_DIGCTL_MICROSECONDS];
 	add	r12, #11  @ debouce time is 11 microseconds.
 
-    @ Loop for specified time to debounce the brownout status bits. 
+    @ Loop for specified time to debounce the brownout status bits.
 
 loop_check:
 	ldr	r10,  [r8, #HW_POWER_STS]
@@ -132,7 +132,8 @@ power_digctl:
 power_off:
 	.long 0x3e770001
 power_bo:
-	.long BM_POWER_CTRL_VDDA_BO_IRQ | BM_POWER_CTRL_VDDD_BO_IRQ | BM_POWER_CTRL_VDDIO_BO_IRQ
+	.long BM_POWER_CTRL_VDDA_BO_IRQ|BM_POWER_CTRL_VDDD_BO_IRQ \
+		|BM_POWER_CTRL_VDDIO_BO_IRQ
 sts_bo:
     .long BM_POWER_STS_VDDIO_BO | BM_POWER_STS_VDDA_BO	| BM_POWER_STS_VDDD_BO
 power_fiq_count:

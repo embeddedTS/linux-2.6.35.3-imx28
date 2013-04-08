@@ -1,21 +1,35 @@
 /*
  * iMX28 Boot Prep
  *
- * Copyright 2008-2010 Freescale Semiconductor
+ * Copyright (c) 2008-2012 Freescale Semiconductor
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Freescale Semiconductor nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ * ALTERNATIVELY, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") as published by the Free Software
+ * Foundation, either version 2 of that License or (at your option) any
+ * later version.
+ *
+ * THIS SOFTWARE IS PROVIDED BY Freescale Semiconductor ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL Freescale Semiconductor BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <debug.h>
@@ -1254,11 +1268,14 @@ void entry_auto_clock_gate()
 }
 void change_cpu_freq()
 {
-	int value = 0;
+	int value = HW_POWER_VDDDCTRL_RD();
 
-	//printf("power 0x%x\r\n" , HW_POWER_VDDDCTRL_RD());
+	//printf("power 0x%x\r\n" , value);
+    value &= ~BM_POWER_VDDDCTRL_TRG;
 	value |= BF_POWER_VDDDCTRL_TRG(28);
+    value &= ~BM_POWER_VDDDCTRL_BO_OFFSET;
 	value |= BF_POWER_VDDDCTRL_BO_OFFSET(7);
+    value &= ~BM_POWER_VDDDCTRL_LINREG_OFFSET;
 	value |= BF_POWER_VDDDCTRL_LINREG_OFFSET(2);
 	//value |= BM_POWER_VDDDCTRL_ENABLE_LINREG;
 	//value |= BM_POWER_VDDDCTRL_DISABLE_STEPPING;
@@ -1297,13 +1314,20 @@ void change_cpu_freq()
 }
 void poweron_vdda()
 {
-	HW_POWER_VDDACTRL_WR( BF_POWER_VDDACTRL_TRG(0xC) | BF_POWER_VDDACTRL_BO_OFFSET(7)
-							| BF_POWER_VDDACTRL_LINREG_OFFSET(2) );
+    int value = HW_POWER_VDDACTRL_RD();
+    value &= ~BM_POWER_VDDACTRL_TRG;
+    value |= BF_POWER_VDDACTRL_TRG(0xC);
+    value &= ~BM_POWER_VDDACTRL_BO_OFFSET;
+    value |= BF_POWER_VDDACTRL_BO_OFFSET(6);
+    value &= ~BM_POWER_VDDACTRL_LINREG_OFFSET;
+    value |= BF_POWER_VDDACTRL_LINREG_OFFSET(2);
+
+    HW_POWER_VDDACTRL_WR(value);
 }
 int _start(int arg)
 {
 	unsigned int value;
-	volatile int *pTest = (volatile int *) 0x40000000;
+	volatile int *pTest = 0x40000000;
 	int i;
 
 	//boot rom wrong use debug uart port.
@@ -1349,10 +1373,6 @@ int _start(int arg)
 	Init_mddr_200MHz();
 	printf("memory type is mDDR\n");
 #else
-	/*
-	 * XXX: Only use 200MHz with TS products
-	 * mDDR and other speeds not calibrated 
-	 */
 	DDR2EmiController_EDE1116_200MHz();
 	//printf("memory type is DDR2\n");
 #endif
@@ -1385,6 +1405,7 @@ int _start(int arg)
 	}
 #endif
 
+#ifdef MEMORY_TEST
 	/*Test Memory;*/
 	/*XXX: insert check here for soft jumper to run longer ram test?*/
 	//printf("start test memory accress\r\n");
@@ -1401,6 +1422,7 @@ int _start(int arg)
 		pTest++;
 	}
 	//printf("finish simple test\r\n");
+#endif
 	return 0;
 }
 

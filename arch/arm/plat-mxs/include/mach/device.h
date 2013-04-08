@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2009-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -129,6 +129,7 @@ struct mxs_spi_platform_data {
 	int (*hw_pin_init)(void);
 	int (*hw_pin_release)(void);
 
+	int slave_mode;
 	char *clk;
 };
 
@@ -146,6 +147,7 @@ struct mxs_audio_platform_data {
 	int (*amp_enable) (int enable);
 	int (*finit) (void);	/* board specific finit */
 	void *priv;		/* used by board specific functions */
+  int inited;
 };
 
 struct mxs_persistent_bit_config {
@@ -185,6 +187,7 @@ struct mxs_mmc_platform_data {
 	int write_uA;
 	char *power_mmc;
 	char *clock_mmc;
+	int fastpath_sz;
 };
 /* end of mxs ssp sd/mmc data definitions */
 

@@ -14,6 +14,7 @@
 #include <setup.h>
 #include <keys.h>
 #include <lradc_buttons.h>
+#include <../../mach-mx28/includes/registers/regsdigctl.h>
 
 /************************************************
  *		LRADC keyboard data		*
@@ -49,3 +50,15 @@ u32 magic_keys[MAGIC_KEY_NR] = {
  *		Default command line		*
  ************************************************/
 char cmdline_def[] = "console=ttyAM0,115200";
+
+u32 get_board_rev(void)
+{
+	int reg;
+	u32 system_rev;
+	reg = HW_DIGCTL_CHIPID_RD();
+	system_rev = 0x28000 + (reg & 0xFF);
+
+	return system_rev;
+}
+
+

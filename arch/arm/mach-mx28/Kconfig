@@ -28,3 +28,17 @@ config MEM_mDDR
 	depends on ARCH_MX28
 	help
 	  Say Y to select mDDR memory
+
+config MX28_SUSPEND_TO_RAM
+	bool "support MX28 suspend-to RAM feature"
+  default n
+	depends on ARCH_MX28
+	help
+	  Say Y to enable suspend-to-RAM
+
+config WORKAROUND_ARCUSB_REG_RW
+        bool "work around mx28 arch register write for USB"
+        help
+           MX28 require read ARC register before write. Use SWP intructure to
+           implement this requirement.
+

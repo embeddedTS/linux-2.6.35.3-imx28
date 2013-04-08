@@ -1,14 +1,35 @@
 /*
- * Copyright 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (c) 2009-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  */
 
 /*
- * The code contained herein is licensed under the GNU General Public
- * License. You may obtain a copy of the GNU General Public License
- * Version 2 or later at the following locations:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Freescale Semiconductor nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
  *
- * http://www.opensource.org/licenses/gpl-license.html
- * http://www.gnu.org/copyleft/gpl.html
+ *
+ * ALTERNATIVELY, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") as published by the Free Software
+ * Foundation, either version 2 of that License or (at your option) any
+ * later version.
+ *
+ * THIS SOFTWARE IS PROVIDED BY Freescale Semiconductor ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL Freescale Semiconductor BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
@@ -36,6 +57,7 @@
 #include "registers/regsuartdbg.h"
 #include "registers/regsclkctrl.h"
 #include "registers/regslradc.h"
+#include "registers/regsrtc.h"
 #include <stdarg.h>
 #include "debug.h"
 
@@ -86,32 +108,67 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
 #define ERROR_INSUFFICIENT_BATT_AFTER_PSWITCH   ((int)POWER_PREP_GROUP + 4)
 #define ERROR_UNEXPECTED_LOOP_EXIT              ((int)POWER_PREP_GROUP + 5)
 
+/* Enable the following if you only have a VDD5V source only and no DCDC_BATT
+ * source.  This includes configurations with and without a supercap on the
+ * BATTERY pin as  * shown in the i.MX28 reference schematic (applies to
+ * i.MX233 as well).
+ *
+ * NOTE: If both a DCDC_BATT and VDD5V source are present, this is not meant to
+ * select which one to use.  This is only for hardware configurations this no
+ * DCDC_BATT power source.
+*/
+//#define NO_DCDC_BATT_SOURCE
+
+/* Enable the following if you only have a DCDC_BATT source only and no V
+ * This includes configurations with and without a supercap on the BATTERY pin as
+ * shown in the i.MX28 reference schematic (applies to i.MX233 as well).
+ *
+ * NOTE: If both a DCDC_BATT and VDD5V source are present, this is not meant to
+ * select which one to use.  This is only for hardware configurations this no
+ * VDD5V power source.
+*/
+//#define NO_VDD5V_SOURCE
+
+/* if you accidentally define both, don't allow a successful compile. */
+#if defined(NO_DCDC_BATT_SOURCE) && defined(NO_VDD5V_SOURCE)
+#error Invalid power source configuration.
+#endif
+
 
 /* We need to protect the DCDC from trying to source charge
  * from too low of a voltage.  This limit is given in
  * the characteristics and specifications section of the
- * reference manual.  Also, we want to stop sourcing
+ * reference manual for i.MX233 and in the datasheet
+ * for i.MX28x.  Also, we want to stop sourcing
  * charge from the battery before the battery's internal
  * protection circuitry may activate which would then cause
- * us to lose RTC time.  Generically using 3.0V as the
- * battery's maximum voltage it may activate it's
- * undervoltage protection.  At the time of this writing,
- * 3V is greater than the minimum DCDC operating voltage
- * so we will set the BRWNOUT_LVL bitfield to 3V value.
+ * us to lose RTC time.  By default, we will use 3.0V as the
+ * battery's maximum voltage that may cause it's undervoltage protection
+ * circuitry to activate.
+ */
+#ifdef mx28
+/*
+ * The minimum DCDC operating voltage for i.MX28 with loading is 3.3V.
+ * we will set the BRWNOUT_LVL bitfield the 3.2V value for 0.1V margin.
+ */
+#define BATTERY_BRWNOUT_BITFIELD_VALUE 20 /* 20 = 3.2V */
+#else
+/*
+ * At the time of this writing,
+ * 3V is greater than the minimum DCDC operating voltage for i.MX233
+ * as listed in by the "Battery / DCDC Input Voltage" parameter listed
+ * in the reference manual so we will set the BRWNOUT_LVL bitfield to 3V value.
  */
 #define BATTERY_BRWNOUT_BITFIELD_VALUE 15 /* 15 = 3.0V */
+#endif
 
-/* per the reference manul, the power supplies DCDC output capabilities
- * are given with 3.3V as the minimum battery input voltage. By default,
- * we'd rather not start the device unless we have know that we can
- * supply a known amount of power (given in the reference manual).
- * This value is used only for booting from battery, not from 5V.
- * Typically, you'll want to set this slightly above the lowest
- * input voltage you want to provide the DCDC during boot to account
- * for larger voltage drops battery output resistance when the load
- * is higher than when this voltage check is made.
+/* When valid VDD5V voltage is present, if the battery voltage is higher than
+ *  this level, we boot from the DCDC_BATT
+ * source instead of VDD5V.  Booting from DCDC_BATT can be quicker in some cases
+ * if it allows us to avoid running at lower clock speeds due to, for example,
+ * USB VBUS current limitations.
  *
- * Lastly, we want this voltage high enough above the battery
+ * We want this voltage to be high enough above the battery
  * brownout level so that we don't accidentally trigger a
  * battery brownout later on during a more critical time
  * (such as when writing to media which might cause some
@@ -125,6 +182,14 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
 
 #define MAX_4P2_CAP_CHARGE_TIME 100000
 #define BOOTUP_CHARGE_4P2_CURRENT_LIMIT 780
+
+/* this is a bad name but this definition attempts to be the level
+ * in which anything below this is too far from the DCDC converters
+ * characterized input voltage.  For example, on i.MX28, 3.3V is the
+ * minimum input voltage that the DCDC was characterized for.  The
+ * characterization actually used was 3.2V but 3.3V is given as minimum
+ * in the spec as margin to account for equipment error and other variables.
+ */
 #define POWER_PREP_MINIMUM_VALID_BATTERY_BOOTUP_VOLTAGE 3200
 #define MAX_BATTERY_CAPACITOR_SIZE_UF 100
 
@@ -137,14 +202,6 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
 #define BATTERY_HIGH           4300
 #define BATTERY_BAD            3500
 #define BATTERY_BOOT           3400
-
-
-/* enable the following if your device configuration consists uses a regulated
-* voltage source for the battery voltage input.  Source must be in the range
-* of the recommended operating voltage range from the characteristics and
-* specifications section of the mx23/mx28 reference manual
-*/
-/* #define NO_BATTERY_VOLTAGE_SOURCE */
 
 #if 0
 #define RUN_BATTERY_TEST
@@ -161,7 +218,15 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
 bool bBatteryConnected = false;
 #endif
 
+/* Should the battery be used as the primary source even when valid VDD5V
+ * is present?  See MINIMUM_SAFE_BOOTING_BATTERY_VOLTAGE_MV comments for
+ * explanation.
+ */
 bool bBatteryReady = false;
+
+/* This flag is used to store the status of whether or not the DCDC_BATT source
+ * is an actual battery or a non-chargeable source.
+ */
 bool bBatteryGood = false;
 ////////////////////////////////////////////////////////////////////////////////
 // Code
@@ -270,10 +335,6 @@ int _start( void )
 	*/
 	ddi_power_SetVddio(3300, 3150);
 
-#ifdef mx28
-	ddi_power_SetVddd(1350, 1200);
-#endif
-
 	HW_POWER_CTRL_CLR(BM_POWER_CTRL_VDDD_BO_IRQ |
 	BM_POWER_CTRL_VDDA_BO_IRQ |
 	BM_POWER_CTRL_VDDIO_BO_IRQ |
@@ -284,20 +345,38 @@ int _start( void )
 	);
 	/* If Battery not ready,setup the auto power down if we lost 5V.*/
 	if (!bBatteryReady)
+	{
 		HW_POWER_5VCTRL_SET(BM_POWER_5VCTRL_PWDN_5VBRNOUT);
+
+#if defined(NO_DCDC_BATT_SOURCE) && defined(mx28)
+	/* On i.MX28, a new bit has been added to allow automatic hardware
+	 * shutdown if VDD4P2 browns out.  If we permanently only have a VDD5V
+	 * source, we want to enable this bit.  For devices with dead batteries,
+	 * we could also temporarily set this bit until the kernel battery
+	 * charger sufficiently charges the battery but we won't do this for
+	 * now as the latest release kernel versions aren't aware of  it
+	 * and thus don't handle the proper setting/clearing of this bit.
+	 */
+		HW_POWER_REFCTRL_SET(1<<7);
+#endif
+
+	}
+
+
 	return iRtn;
 }
 
 /* clear RTC ALARM wakeup or AUTORESTART bits here. */
 void PowerPrep_ClearAutoRestart( void )
 {
-	HW_RTC_CTRL_CLR( BM_ICOLL_CTRL_SFTRST );
+	HW_RTC_CTRL_CLR( BM_RTC_CTRL_SFTRST );
 	while( HW_RTC_CTRL.B.SFTRST == 1 );
-	HW_RTC_CTRL_CLR( BM_ICOLL_CTRL_CLKGATE );
+	HW_RTC_CTRL_CLR( BM_RTC_CTRL_CLKGATE );
 	while( HW_RTC_CTRL.B.CLKGATE == 1 );
         /* Due to the hardware design bug of mx28 EVK-A
         * we need to set the AUTO_RESTART bit.
 	*/
+#if 0
 	if(HW_RTC_PERSISTENT0.B.AUTO_RESTART==0)
 	{
 		while(BF_RD( RTC_STAT, NEW_REGS));
@@ -307,6 +386,7 @@ void PowerPrep_ClearAutoRestart( void )
 		while(BF_RD( RTC_STAT, NEW_REGS));
 		while(BF_RD( RTC_STAT, STALE_REGS));
 	}
+#endif
 }
 ////////////////////////////////////////////////////////////////////////////////
 //! \brief
@@ -320,12 +400,18 @@ int PowerPrep_ConfigurePowerSource( void )
 	/* initialize DCDC operating parameters */
 	hw_power_Init();
 
-#ifdef  NO_BATTERY_VOLTAGE_SOURCE
+#ifdef  NO_DCDC_BATT_SOURCE
 
-	/* device configured for "no battery" operation (5V only power source).  This boot
-	* option doesn't waste time looking for a good battery.  Battery powered
-	* operation and automatic voltage measurements are disabled.
+	/* device configured for no source to DCDC_BATT input (5V only power
+	 * source).  This boot option doesn't waste time looking for a good
+	 *  battery.  Battery powered operation and automatic voltage
+	 *  measurements are disabled.
 	*/
+    // set bit 11 of PERSISTENT1
+    HW_RTC_PERSISTENT1_SET(0x800);
+
+    // clear bit 12 PERSISTENT1
+    HW_RTC_PERSISTENT1_CLR(0x1000);
 
 	bBatteryReady = false;
 	bBatteryGood = false;
@@ -333,16 +419,67 @@ int PowerPrep_ConfigurePowerSource( void )
 	printf("\r\nConfigured for 5v only power source.\
 		Battery powered operation disabled.\r\n");
 
-	/* disable automatic battery voltage measurements */
+
+	/* Disable automatic battery voltage measurements which seem unnecessary
+	 * for this configuration.
+	 */
+    BF_SET(POWER_BATTMONITOR,EN_BATADJ);
 	BF_CLR(LRADC_CONVERSION, AUTOMATIC);
-	BF_WR(POWER_BATTMONITOR, BATT_VAL,0);
+	BF_WR(POWER_BATTMONITOR, BATT_VAL,525);  //4200/8
+
+	HW_POWER_BATTMONITOR.B.BRWNOUT_LVL = BATTERY_BRWNOUT_BITFIELD_VALUE;
 
 	iReturnValue = PowerPrep_5vBoot();
 
 #ifndef MXS_VBUS_CURRENT_DRAW
 	PowerPrep_CPUClock2PLL();
 #endif
+
+
+#elif defined(NO_VDD5V_SOURCE)
+	printf("\r\nConfigured for DCDC_BATT only power source.\r\n");
+
+#ifdef mx28
+	/* We only care about the DCDC_BATT source in this configuration */
+	BF_SET(POWER_BATTMONITOR,PWDN_BATTBRNOUT_5VDETECT_ENABLE);
+#endif
+
+    // clear bit 11 PERSISTENT1
+    HW_RTC_PERSISTENT1_CLR(0x800);
+
+    // set bit 12 PERSISTENT1
+    HW_RTC_PERSISTENT1_SET(0x1000);
+	/* since the DCDC_BATT input is our only source, we'll assume
+	 * it is good and attempt to boot.  If your device has uses
+	 * this configuration but has a external DCDC_BATT source
+	 * that takes time to ramp, you could add a voltage check
+	 * and wait here until voltage reaches near the final level to
+	 * avoid trigger a battery brownout when the voltage is too
+	 * low.
+	 */
+	bBatteryReady = true;
+
+	/* bBatteryGood is not used for this configuration */
+	/* bBatteryGood = don't care */
+
+	/*Boot from DCDC_BATT source*/
+	iReturnValue = PowerPrep_BattBoot();
+	PowerPrep_CPUClock2PLL();
+
+	/* raise battery brownout level to programmed value. */
+	PowerPrep_InitBattBo();
+
+	/* Configured to not use a VDD5V source */
+	HW_POWER_5VCTRL_SET(BM_POWER_5VCTRL_ILIMIT_EQ_ZERO);
+
+
+
+
 #else
+
+    //clear bit 11 and 12 of PERSISTENT1
+    HW_RTC_PERSISTENT1_CLR(0x1800);
+
 	/* check if Battery Voltage is high enough for full
 	* power operation.
 	*/
@@ -368,51 +505,32 @@ int PowerPrep_ConfigurePowerSource( void )
 	}
 	else
 	{
-		/* 5v input detected.  Now we need to determine if a
-		* valid battery source is present to decide which
-		* power source to use during bootup.
+		/* 5v input detected, boot from 5V.
 		*/
 		bBatteryGood = PowerPrep_IsBatteryGood();
-		if(!bBatteryReady)
-		{
-			if(bBatteryGood)
-				/* control arrives here if the battery voltage source
-				* appears to be chargeable but the voltage is current
-				* too low to use as a reliable battery voltage source.
-				*/
-				printf("\r\nChargeable battery detected but\
-					the voltage is too low for battery\
-					powered operation.Booting from 5V\
-					power source.\r\n");
-			else {
+		if(!bBatteryGood) {
 				BF_CLR(LRADC_CONVERSION, AUTOMATIC);
 				BF_WR(POWER_BATTMONITOR, BATT_VAL,0);
-				//printf("\r\nNo battery or bad battery detected!!!\r\n");
-				//printf("\r\nDisabling battery voltage measurements.\r\n");
-			}
-			iReturnValue = PowerPrep_5vBoot();
-#ifndef MXS_VBUS_CURRENT_DRAW
-			PowerPrep_CPUClock2PLL();
-#endif /* MXS_VBUS_CURRENT_DRAW */
+				/*printf("\r\nNo battery or bad battery\
+					detected!!!.Disabling battery\
+					voltage measurements./r/n");*/
 		}
-		else
-		{
-			printf("\r\n5v source detected.Valid battery\
-				voltage detected.Booting from battery\
-				voltage source.\r\n");
-			/*Boot from battery*/
-			iReturnValue = PowerPrep_BattBoot();
-			PowerPrep_CPUClock2PLL();
+		iReturnValue = PowerPrep_5vBoot();
 
-		}
+
+#ifndef MXS_VBUS_CURRENT_DRAW
+		PowerPrep_CPUClock2PLL();
+#endif /* MXS_VBUS_CURRENT_DRAW */
 	}
-#endif
+
 	/* raise battery brownout level to programmed value. */
 	PowerPrep_InitBattBo();
+#endif /* #ifdef NO_DCDC_BATT_SOURCE */
 
 	/* Lastly, let's switch the Vddd power source to DCDC instead of
 	* the linear regulator(linear regulator is the hardware default
-	* configuration at bootup.
+	* configuration at bootup but is much less capable than the DCDC
+	* converter.  See datasheet for details.
 	*/
 	PowerPrep_SwitchVdddToDdcdcSource();
 
@@ -568,19 +686,13 @@ void PowerPrep_Enable4p2( void )
 
 	uint32_t vdddctrl, vddactrl, vddioctrl;
 
-	/* Disabling of FETs is necessary for the following functionality to
-	* enable 4P2 safely when the glitch from mx23 chip errata 5837
-	* occurs.  When the glitch occurs and 4P2 rail is restarted,
-	* if the DCDC is active and sourced from 4P2, and if the battery is very low
-	* or dead, the re-enabling of the 4P2 source causes the DCDC's source
-	* to spike up quickly, potentially causing voltage spikes on the output
-	* rails which we want to avoid.  A similar but slightly different scenario
-	* caused chip damage in previous generations of parts.
-	*
-	* Also, we the only entrance to this function should be from a 5V connected
-	* bootup and the PWDN_5VBRNOUT functionaltiy should be enabled.  We
-	* are about to disable all the fets so if we were relying on battery powered
-	* DCDC operation and arrive at this point, the device will fail.
+    /* Errata 5837:  Setting the ENABLE_DCDC bit in the HW_POWER_DCDC4P2 or
+       HW_POWER_5VCTRL registers can result in false brownout detection.
+
+       When the ENABLE_DCDC bit in HW_POWER_DCDC4P2 is set, a glitch is propagated through
+       the brownout comparators. If the glitch is sufficiently large, it can cause a false brownout detection.
+       The VDDD, VDDA, VDDIO, and VBUSVALID comparators are all susceptible to the glitch.
+       Below codes follow the workaround sequence of Errata 5837 to avoid the shutdown caused by false brownout.
 	*/
 
 	vdddctrl = HW_POWER_VDDDCTRL_RD();
@@ -592,11 +704,11 @@ void PowerPrep_Enable4p2( void )
 		BM_POWER_VDDDCTRL_PWDN_BRNOUT);
 
 	HW_POWER_VDDACTRL_SET(BM_POWER_VDDACTRL_DISABLE_FET |
-		BM_POWER_VDDDCTRL_ENABLE_LINREG |
-		BM_POWER_VDDDCTRL_PWDN_BRNOUT);
+		BM_POWER_VDDACTRL_ENABLE_LINREG |
+		BM_POWER_VDDACTRL_PWDN_BRNOUT);
 
 	HW_POWER_VDDIOCTRL_SET(BM_POWER_VDDIOCTRL_DISABLE_FET |
-		BM_POWER_VDDDCTRL_PWDN_BRNOUT);
+		BM_POWER_VDDIOCTRL_PWDN_BRNOUT);
 
 	PowerPrep_Init4p2Parameters();
 
@@ -648,7 +760,12 @@ void PowerPrep_Init4p2Parameters( void )
 
 	HW_POWER_DCDC4P2.B.TRG = 0;
 	HW_POWER_5VCTRL.B.HEADROOM_ADJ = 0x4;
+#ifdef NO_DCDC_BATT_SOURCE
+/* don't use the DCDC_BATT source if configured not to */
+	HW_POWER_DCDC4P2.B.DROPOUT_CTRL = 0x8;  //100mV drop before stealing
+#else
 	HW_POWER_DCDC4P2.B.DROPOUT_CTRL = 0xA;  //100mV drop before stealing
+#endif
 		// charging current
 	HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT = 0x3f;
 }
@@ -656,6 +773,7 @@ void PowerPrep_Init4p2Parameters( void )
 
 void PowerPrep_Init4p2Regulator( void )
 {
+    int i;
 
 	// Enables but DCDC 4P2 logic.  This appears to be a necessary step not
 	// only for DCDC operation from 4p2, but for the 4p2 rail itself to
@@ -688,60 +806,28 @@ void PowerPrep_Init4p2Regulator( void )
 		* battery power is not present.  Exiting to not enable DCDC
 		* power during 5V connected state.
 		*/
-		hw_power_Enable4p2DcdcInput(false);
-		hw_power_EnableMaster4p2( false );
-
 		printf("Enabling of DCDC failed at setting of \
-			DCDC4P2 ENABLE_DCDC.  Only 5V power supply \
-			operating is the linear regulators.\n");
+			DCDC4P2 ENABLE_DCDC.  We need power down device.\n");
+
+		hw_digctl_MicrosecondWait(100);
+        hw_power_PowerDown();
+
 		return;
 	}
 
 
-
-	/* here we set the 4p2 brownout level to something very
-	* close to 4.2V.  We then check the brownout status.  If the brownout
-	* status is false, the voltage is already close to the target
-	* voltage of 4.2V so we can go ahead and set the 4P2 current
-	* limit to our max target limit.  If the brownout status is true,
-	* we need to ramp us the current limit so that we don't cause
-	* large inrush current issues.  We step up the current limit until
-	* the brownout status is false or until we've reached our maximum
-	* defined 4p2 current limit.
+    /* Ramp up the current limit to avoid large inrush current.
 	*/
-	HW_POWER_DCDC4P2.B.BO = 22; // 4.15V
 
-
-	if(HW_POWER_STS.B.DCDC_4P2_BO == 0)
-	{
-		HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT =
-			hw_power_ConvertCurrentToSetting(
-			BOOTUP_CHARGE_4P2_CURRENT_LIMIT);
-	}
-	else
-	{
-
-		int i = HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT;
+    i = HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT;
 
 		while(i < hw_power_ConvertCurrentToSetting(
 				BOOTUP_CHARGE_4P2_CURRENT_LIMIT))
-
 		{
-			if(HW_POWER_STS.B.DCDC_4P2_BO == 0)
-			{
-				i = hw_power_ConvertCurrentToSetting(
-				BOOTUP_CHARGE_4P2_CURRENT_LIMIT);
-				hw_digctl_MicrosecondWait(100);
-				HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT = i;
-			}
-			else
-			{
 				i++;
 				HW_POWER_5VCTRL.B.CHARGE_4P2_ILIMIT = i;
 				hw_digctl_MicrosecondWait(100);
 			}
-		}
-	}
 
 
 #ifdef MXS_VBUS_CURRENT_DRAW
@@ -752,7 +838,8 @@ void PowerPrep_Init4p2Regulator( void )
 		hw_digctl_MicrosecondWait(10000);
 #endif
 
-	HW_POWER_DCDC4P2.B.BO = 0;
+    hw_digctl_MicrosecondWait(100000);
+
 	HW_POWER_CTRL_CLR(BM_POWER_CTRL_DCDC4P2_BO_IRQ);
 
 }
@@ -810,14 +897,6 @@ void PowerPrep_Enable4p2Fiq( void )
 
 void PowerPrep_InitDcdc4p2Source( void )
 {
-
-	if(HW_POWER_DCDC4P2.B.ENABLE_DCDC == false)
-	{
-		printf("Error: tried to enable 5VCTRL ENABLE_DCDC before\
-			enabling DCDC4P2 ENABLE_DCDC.\n");
-		return;
-	}
-
 	/* Enable Master 4p2 */
 	hw_power_EnableDcdc( true );
 
@@ -829,13 +908,13 @@ void PowerPrep_InitDcdc4p2Source( void )
 		 * battery power is not present.  Exiting to not enable DCDC
 		 * power during 5V connected state.
 		 */
-		hw_power_EnableDcdc( false );
-		hw_power_Enable4p2DcdcInput( false );
-		hw_power_EnableMaster4p2( false );
 
 		printf("Enabling of DCDC failed at setting of "\
-			"5VCTRL ENABLE_DCDC.  The only 5V power supply "\
-			"operating is the linear regulators.\r\n");
+			"5VCTRL ENABLE_DCDC.  We need power down device.\n");
+
+		hw_digctl_MicrosecondWait(100);
+
+        hw_power_PowerDown();
 		return;
 	}
 }
@@ -869,8 +948,6 @@ int PowerPrep_5vBoot( void )
 
 int PowerPrep_Handle5vConflict( void )
 {
-    bool bLoop;
-
     // Need to check the VDDIO brownout level, so initialize it to maximum offset.
     HW_POWER_VDDIOCTRL.B.BO_OFFSET = BO_OFFSET_MAX;
 
@@ -880,59 +957,56 @@ int PowerPrep_Handle5vConflict( void )
     // continue to boot unless something changes.  So, we'll
     // stay in this loop.
     //--------------------------------------------------------------------------
-    bLoop = true;
-    while(bLoop)
+
+    //---------------------------------------------------------------------
+    // Did output supply brownout?
+    //---------------------------------------------------------------------
+    if( HW_POWER_STS.B.VDDIO_BO )
     {
-        //---------------------------------------------------------------------
-        // Did output supply brownout?
-        //---------------------------------------------------------------------
-        if( HW_POWER_STS.B.VDDIO_BO )
-        {
-            // If VDDIO has a brownout, then the VDD5V_GT_VDDIO becomes
-            // unreliable.  We need to shut down and try again.
-            PowerPrep_PowerDown();
-            return ERROR_VDDIO_BROWNOUT;
-        }
+        // If VDDIO has a brownout, then the VDD5V_GT_VDDIO becomes
+        // unreliable.  We need to shut down and try again.
+				printf("No stable power source. Power down device.\n");
+				hw_digctl_MicrosecondWait(100);
+
+        PowerPrep_PowerDown();
+        return ERROR_VDDIO_BROWNOUT;
+    }
 
 
-
-        //---------------------------------------------------------------------
-        // Did 5V change state?
-        //---------------------------------------------------------------------
-        if( IsVbusValid() && IsVdd5vGtVddio() )
-        {
-            // Both 5V detections see 5V.  Break out of loop and continue
-            // to boot device with 5V and consider it a valid 5V.
-            PowerPrep_BootValid5v();
-            return SUCCESS;
-        }
-
-        if( Is5vPresent() == false )
-        {
-            // Neither 5V detection sees 5V.  It has dropped below
-            // detection levels so we will shut down.
-            PowerPrep_PowerDown();
-            return ERROR_5V_OSCILLATING;
-        }
+    //---------------------------------------------------------------------
+    // Did 5V change state?
+    //---------------------------------------------------------------------
+    if( IsVbusValid() && IsVdd5vGtVddio() )
+    {
+        // Both 5V detections see 5V.  Break out of loop and continue
+        // to boot device with 5V and consider it a valid 5V.
+        PowerPrep_BootValid5v();
+        return SUCCESS;
+    }
 
 
+#ifdef  NO_DCDC_BATT_SOURCE
+		printf("No 5V present. Power down device.\n");
+		hw_digctl_MicrosecondWait(100);
+    PowerPrep_PowerDown();
+    return ERROR_5V_OSCILLATING;
+#endif
 
-        //---------------------------------------------------------------------
-        // Was PSWITCH pressed?
-        //---------------------------------------------------------------------
-        if( HW_POWER_STS.B.PSWITCH > 0 )
-        {
-        	return PowerPrep_BattBoot();
 
-        }
-    } // end while(bLoop)
+		if(PowerPrep_IsBatteryReady() == true) {
+			return PowerPrep_BattBoot();
+		}
+		else {
+			printf("No stable power source. Power down device.\n");
+			hw_digctl_MicrosecondWait(100);
 
-    return ERROR_UNEXPECTED_LOOP_EXIT;
+			PowerPrep_PowerDown();
+			return ERROR_5V_OSCILLATING;
+		}
 }
 
 int PowerPrep_InitBattBoFiq( void )
 {
-#ifndef mx28
     HW_ICOLL_CTRL_CLR( BM_ICOLL_CTRL_SFTRST );
     while( HW_ICOLL_CTRL.B.SFTRST == 1 );
     HW_ICOLL_CTRL_CLR( BM_ICOLL_CTRL_CLKGATE );
@@ -944,10 +1018,8 @@ int PowerPrep_InitBattBoFiq( void )
     hw_core_EnableFiqInterrupt(true);
 
 
-    // For 378x, we must also enable the IRQ to enable the FIQ.
     hw_icoll_EnableVector(VECTOR_IRQ_BATT_BRNOUT , 1);
 
-#endif
     return SUCCESS;
 }
 
@@ -1007,22 +1079,8 @@ int PowerPrep_Init4p2BoFiq( void )
 
 int PowerPrep_BattBoot( void )
 {
-#if 0
-	if(!bBatteryReady)
-	{
-		/* wait until PSWITCH is no longer asserted to avoid
-		* multiple boots under this condition */
-		while((HW_POWER_STS.B.PSWITCH > 0 ) &&
-		!bBatteryReady)
-		{
-			bBatteryReady = PowerPrep_IsBatteryReady();
-		}
-		PowerPrep_PowerDown();
-	}
-#endif
-
 	/* enable battery brownout fiq to shutdown device if the battery
-	* voltage gets to low, even if 5V is present.
+	* voltage gets too low, even if 5V is present.
 	*/
 	PowerPrep_InitBattBoFiq();
 	HW_POWER_5VCTRL_CLR(BM_POWER_5VCTRL_PWDN_5VBRNOUT);
@@ -1046,10 +1104,6 @@ int PowerPrep_BattBoot( void )
 	BF_CLR(POWER_5VCTRL, DCDC_XFER);
 
 	BF_CLR(POWER_CTRL,ENIRQ_DCDC4P2_BO);
-
-	/*Enable double FETs to make DCDC more powerful*/
-	HW_POWER_MINPWR_CLR(BM_POWER_MINPWR_HALF_FETS);
-	HW_POWER_MINPWR_SET(BM_POWER_MINPWR_DOUBLE_FETS);
 
 	/* This should have already been done, but just in case */
 	HW_POWER_VDDDCTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;

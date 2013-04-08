@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2005 MontaVista Software
- * Copyright (C) 2010 Freescale Semiconductor
+ * Copyright (C) 2013 Freescale Semiconductor, Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -33,6 +33,8 @@ extern int usb_host_wakeup_irq(struct device *wkup_dev);
 extern void usb_host_set_wakeup(struct device *wkup_dev, bool para);
 static void fsl_usb_lowpower_mode(struct fsl_usb2_platform_data *pdata, bool enable)
 {
+	pdata->lowpower = enable;
+
 	if (enable) {
 		if (pdata->phy_lowpower_suspend)
 			pdata->phy_lowpower_suspend(pdata, true);
@@ -40,7 +42,6 @@ static void fsl_usb_lowpower_mode(struct fsl_usb2_platform_data *pdata, bool ena
 		if (pdata->phy_lowpower_suspend)
 			pdata->phy_lowpower_suspend(pdata, false);
 	}
-	pdata->lowpower = enable;
 }
 
 static void fsl_usb_clk_gate(struct fsl_usb2_platform_data *pdata, bool enable)
@@ -111,10 +112,31 @@ static int ehci_testmode_init(struct ehci_hcd *ehci)
 }
 #endif	/* /proc PORTSC:PTC support */
 
+/**
+ * The hcd operation need to be done during the wakeup irq
+ */
+void fsl_usb_recover_hcd(struct platform_device *pdev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(pdev);
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+	u32 cmd = 0;
+
+	set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
+	/* After receive remote wakeup signaling. Must restore
+	 * CMDRUN bit in 20ms to keep port status.
+	 */
+	cmd = ehci_readl(ehci, &ehci->regs->command);
+	if (!(cmd & CMD_RUN) || (hcd->state == HC_STATE_SUSPENDED)) {
+		ehci_writel(ehci, ehci->command, &ehci->regs->command);
+		/* Resume root hub here? */
+		usb_hcd_resume_root_hub(hcd);
+	}
+}
 
 /**
  * This irq is used to open the hw access and let usb_hcd_irq process the usb event
  * ehci_fsl_pre_irq will be called before usb_hcd_irq
+ * The hcd operation need to be done during the wakeup irq
  */
 static irqreturn_t ehci_fsl_pre_irq(int irq, void *dev)
 {
@@ -125,15 +147,13 @@ static irqreturn_t ehci_fsl_pre_irq(int irq, void *dev)
 	pdata = hcd->self.controller->platform_data;
 
 	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags)) {
-		if (pdata->irq_delay)
+		if (pdata->irq_delay || ((pdata->wakeup_event == WAKEUP_EVENT_VBUS) || (pdata->wakeup_event == WAKEUP_EVENT_INVALID)))
 			return IRQ_NONE;
-		if (pdata->wakeup_event) {
-			pr_debug("%s\n", __func__);
-			usb_host_set_wakeup(hcd->self.controller, false);
-			fsl_usb_lowpower_mode(pdata, false);
-			set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
-			pdata->wakeup_event = 0;
-		}
+
+		pr_debug("%s\n", __func__);
+		pdata->wakeup_event = WAKEUP_EVENT_INVALID;
+		fsl_usb_recover_hcd(pdev);
+		return IRQ_HANDLED;
 	}
 	return IRQ_NONE;
 }
@@ -226,7 +246,6 @@ int usb_hcd_fsl_probe(const struct hc_driver *driver,
 
 	fsl_platform_set_host_mode(hcd);
 	hcd->power_budget = pdata->power_budget;
-
 	/*
 	 * The ehci_fsl_pre_irq must be registered before usb_hcd_irq, in that case
 	 * it can be called before usb_hcd_irq when irq occurs
@@ -251,13 +270,14 @@ int usb_hcd_fsl_probe(const struct hc_driver *driver,
 		if (!ehci->transceiver) {
 			printk(KERN_ERR "can't find transceiver\n");
 			retval = -ENODEV;
-			goto err5;
+			goto err6;
 		}
 
 		retval = otg_set_host(ehci->transceiver, &ehci_to_hcd(ehci)->self);
 		if (retval)
 			otg_put_transceiver(ehci->transceiver);
-	} else if (pdata->operating_mode == FSL_USB2_MPH_HOST)
+	} else if ((pdata->operating_mode == FSL_USB2_MPH_HOST) || \
+			(pdata->operating_mode == FSL_USB2_DR_HOST))
 		fsl_platform_set_vbus_power(pdata, 1);
 
 	if (pdata->suspended) {
@@ -269,10 +289,12 @@ int usb_hcd_fsl_probe(const struct hc_driver *driver,
 	fsl_platform_set_ahb_burst(hcd);
 	ehci_testmode_init(hcd_to_ehci(hcd));
 	return retval;
+err6:
+	usb_remove_hcd(hcd);
 err5:
-	free_irq(irq, (void *)pdev);
-err4:
 	iounmap(hcd->regs);
+err4:
+	free_irq(irq, (void *)pdev);
 err3:
 	if (pdata->operating_mode != FSL_USB2_DR_OTG)
 		release_mem_region(hcd->rsrc_start, hcd->rsrc_len);
@@ -304,6 +326,8 @@ static void usb_hcd_fsl_remove(struct usb_hcd *hcd,
 		/* Need open clock for register access */
 		if (pdata->usb_clock_for_pm)
 			pdata->usb_clock_for_pm(true);
+
+		usb_host_set_wakeup(hcd->self.controller, false);
 
 		tmp = ehci_readl(ehci, &ehci->regs->port_status[0]);
 		if (tmp & PORT_PTS_PHCD) {
@@ -379,6 +403,9 @@ static int ehci_fsl_bus_suspend(struct usb_hcd *hcd)
 {
 	int ret = 0;
 	struct fsl_usb2_platform_data *pdata;
+	u32 tmp, portsc;
+	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
+
 	pdata = hcd->self.controller->platform_data;
 	printk(KERN_DEBUG "%s, %s\n", __func__, pdata->name);
 
@@ -388,10 +415,17 @@ static int ehci_fsl_bus_suspend(struct usb_hcd *hcd)
 		return 0;
 	}
 
-	ehci_bus_suspend(hcd);
+	portsc = ehci_readl(ehci, &ehci->regs->port_status[0]);
+	ret = ehci_bus_suspend(hcd);
+	if (ret != 0)
+		return ret;
 
-	if (pdata->platform_suspend)
-		pdata->platform_suspend(pdata);
+	if (portsc & PORT_CCS) {
+		printk(KERN_DEBUG "there is a device on the port\n");
+		tmp = ehci_readl(ehci, &ehci->regs->command);
+		tmp |= CMD_RUN;
+		ehci_writel(ehci, tmp, &ehci->regs->command);
+	}
 
 	usb_host_set_wakeup(hcd->self.controller, true);
 	fsl_usb_lowpower_mode(pdata, true);
@@ -419,19 +453,11 @@ static int ehci_fsl_bus_resume(struct usb_hcd *hcd)
 
 	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags)) {
 		set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
-		if (!pdata->wakeup_event) {
-			/* The usb interrupt is still not occurred,
-			   but the clock opens at wakeup routine
-			 */
-			fsl_usb_clk_gate(hcd->self.controller->platform_data, true);
-		} else
-			pdata->wakeup_event = 0;
+		fsl_usb_clk_gate(hcd->self.controller->platform_data, true);
 		usb_host_set_wakeup(hcd->self.controller, false);
 		fsl_usb_lowpower_mode(pdata, false);
 	}
 
-	if (pdata->platform_resume)
-		pdata->platform_resume(pdata);
 	ret = ehci_bus_resume(hcd);
 	if (ret)
 		return ret;
@@ -445,6 +471,9 @@ static void ehci_fsl_shutdown(struct usb_hcd *hcd)
 		set_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
 		fsl_usb_clk_gate(hcd->self.controller->platform_data, true);
 	}
+	/* Disable wakeup event first */
+	usb_host_set_wakeup(hcd->self.controller, false);
+
 	ehci_shutdown(hcd);
 	if (test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags)) {
 		clear_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
@@ -545,7 +574,9 @@ static int ehci_fsl_drv_remove(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(pdev);
 
-	/* FIXME we only want one one remove() not two */
+	/* free ehci_fsl_pre_irq first */
+	free_irq(hcd->irq, (void *)pdev);
+	/* FIXME we only want one remove() not two */
 	usb_hcd_fsl_remove(hcd, pdev);
 	return 0;
 }
@@ -605,6 +636,7 @@ static int ehci_fsl_drv_suspend(struct platform_device *pdev,
 			usb_host_set_wakeup(hcd->self.controller, false);
 			fsl_usb_clk_gate(hcd->self.controller->platform_data, false);
 		}
+		disable_irq(hcd->irq);
 		return 0;
 	}
 
@@ -696,6 +728,7 @@ static int ehci_fsl_drv_resume(struct platform_device *pdev)
 				fsl_usb_clk_gate(hcd->self.controller->platform_data, false);
 			}
 		}
+		enable_irq(hcd->irq);
 		return 0;
 	}
 	if (!test_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags)) {

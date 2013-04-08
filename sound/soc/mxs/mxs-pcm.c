@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2011-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/dma-mapping.h>
+#include <linux/delay.h>
 
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -230,6 +231,7 @@ static int mxs_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		mxs_dma_freeze(prtd->dma_ch);
+		mdelay(30);
 		break;
 
 	default:
@@ -266,6 +268,7 @@ static int mxs_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct mxs_runtime_data *prtd = substream->runtime->private_data;
 
 	prtd->dma_period = params_period_bytes(hw_params);
+	pr_debug("The period size is :%d\n", prtd->dma_period);
 	prtd->dma_totsize = params_buffer_bytes(hw_params);
 	prtd->format = params_format(hw_params);
 
@@ -369,14 +372,25 @@ static int mxs_pcm_close(struct snd_pcm_substream *substream)
 	struct mxs_runtime_data *prtd = runtime->private_data;
 	int desc_num = mxs_pcm_hardware.periods_max;
 	int desc;
+	int timeo = 20;
 
 	static LIST_HEAD(list);
 	mxs_dma_disable(prtd->dma_ch);
+
+	/* Wait until the DMA chain is finished. */
+	while (mxs_dma_read_semaphore(prtd->dma_ch)) {
+		if (!timeo--)
+			break;
+		pr_debug("The sema is not zero now\n");
+		msleep(10);
+	}
+	if (timeo <= 0)
+		pr_warn("Is the DMA channel dead?\n");
+
 	/* Free DMA irq */
 	free_irq(prtd->params->irq, substream);
 	mxs_dma_get_cooked(prtd->dma_ch, &list);
 	/* Free DMA channel*/
-	mxs_dma_reset(prtd->dma_ch);
 	for (desc = 0; desc < desc_num; desc++)
 		mxs_dma_free_desc(prtd->dma_desc_array[desc]);
 	mxs_dma_release(prtd->dma_ch, mxs_pcm_dev);

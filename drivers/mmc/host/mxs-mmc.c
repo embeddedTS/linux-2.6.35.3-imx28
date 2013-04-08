@@ -3,7 +3,7 @@
  * Portions copyright (C) 2004-2005 Pierre Ossman, W83L51xD SD/MMC driver
  *
  * Copyright 2008 Embedded Alley Solutions, Inc.
- * Copyright 2009-2010 Freescale Semiconductor, Inc.
+ * Copyright 2009-2011 Freescale Semiconductor, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -127,6 +127,7 @@ struct mxs_mmc_host {
 	int dmairq, errirq;
 
 	/* DMA descriptor to transfer data over SSP interface */
+	dma_addr_t dma_desc_phys;
 	struct mxs_dma_desc *dma_desc;
 
 	/* DMA buffer */
@@ -141,6 +142,7 @@ struct mxs_mmc_host {
 
 	spinlock_t lock;
 	int sdio_irq_en;
+	int fastpath_sz;
 };
 
 /* Return read only state of card */
@@ -180,14 +182,16 @@ static void mxs_mmc_detect_poll(unsigned long arg)
 	mod_timer(&host->timer, jiffies + MXS_MMC_DETECT_TIMEOUT);
 }
 
-#define MXS_MMC_IRQ_BITS  (BM_SSP_CTRL1_SDIO_IRQ		| \
-				BM_SSP_CTRL1_RESP_ERR_IRQ	| \
+#define MXS_MMC_ERR_IRQ_BITS  (BM_SSP_CTRL1_RESP_ERR_IRQ	| \
 				BM_SSP_CTRL1_RESP_TIMEOUT_IRQ	| \
 				BM_SSP_CTRL1_DATA_TIMEOUT_IRQ	| \
 				BM_SSP_CTRL1_DATA_CRC_IRQ	| \
 				BM_SSP_CTRL1_FIFO_UNDERRUN_IRQ	| \
 				BM_SSP_CTRL1_RECV_TIMEOUT_IRQ   | \
 				BM_SSP_CTRL1_FIFO_OVERRUN_IRQ)
+
+#define MXS_MMC_IRQ_BITS  (BM_SSP_CTRL1_SDIO_IRQ		| \
+				MXS_MMC_ERR_IRQ_BITS)
 
 #define MXS_MMC_ERR_BITS (BM_SSP_CTRL1_RESP_ERR_IRQ       | \
 				BM_SSP_CTRL1_RESP_TIMEOUT_IRQ   | \
@@ -200,15 +204,20 @@ static irqreturn_t mmc_irq_handler(int irq, void *dev_id)
 {
 	struct mxs_mmc_host *host = dev_id;
 	u32 c1;
+	LIST_HEAD(list);
 
 	c1 = __raw_readl(host->ssp_base + HW_SSP_CTRL1);
-	__raw_writel(c1 & MXS_MMC_IRQ_BITS,
-			host->ssp_base + HW_SSP_CTRL1_CLR);
+	if (irq == host->dmairq)
+		__raw_writel(c1 & MXS_MMC_ERR_IRQ_BITS,
+				host->ssp_base + HW_SSP_CTRL1_CLR);
+	else
+		__raw_writel(c1 & MXS_MMC_IRQ_BITS,
+				host->ssp_base + HW_SSP_CTRL1_CLR);
 	if (irq == host->dmairq) {
 		dev_dbg(host->dev, "dma irq 0x%x and stop DMA.\n", irq);
 		mxs_dma_ack_irq(host->dmach);
 		/* STOP the dma transfer here. */
-		mxs_dma_cooked(host->dmach, NULL);
+		mxs_dma_cooked(host->dmach, &list);
 	}
 
 	if ((irq == host->dmairq) || (c1 & MXS_MMC_ERR_BITS))
@@ -219,7 +228,8 @@ static irqreturn_t mmc_irq_handler(int irq, void *dev_id)
 		}
 
 	if ((c1 & BM_SSP_CTRL1_SDIO_IRQ) && (c1 & BM_SSP_CTRL1_SDIO_IRQ_EN))
-		mmc_signal_sdio_irq(host->mmc);
+		if (irq == host->errirq)
+			mmc_signal_sdio_irq(host->mmc);
 
 	return IRQ_HANDLED;
 }
@@ -244,61 +254,75 @@ static inline int mxs_mmc_cmd_error(u32 status)
 	return err;
 }
 
-/* Send the BC command to the device */
 static void mxs_mmc_bc(struct mxs_mmc_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
-	struct mxs_dma_desc *dma_desc = host->dma_desc;
-	unsigned long flags;
+	u32 ssp_ctrl0;
+	u32 ssp_cmd0;
+	u32 ssp_cmd1;
+	u32 ssp_ctrl1;
+	u32 c1;
 
-	dma_desc->cmd.cmd.bits.command = NO_DMA_XFER;
-	dma_desc->cmd.cmd.bits.irq = 1;
-	dma_desc->cmd.cmd.bits.dec_sem = 1;
-	dma_desc->cmd.cmd.bits.wait4end = 1;
-	dma_desc->cmd.cmd.bits.pio_words = 3;
-	dma_desc->cmd.cmd.bits.bytes = 0;
-
-	dma_desc->cmd.pio_words[0] = BM_SSP_CTRL0_ENABLE |
+	ssp_ctrl0 = BM_SSP_CTRL0_ENABLE |
 	    BM_SSP_CTRL0_IGNORE_CRC;
-	dma_desc->cmd.pio_words[1] = BF(cmd->opcode, SSP_CMD0_CMD) |
+	ssp_cmd0 = BF(cmd->opcode, SSP_CMD0_CMD) |
 	    BM_SSP_CMD0_APPEND_8CYC;
-	dma_desc->cmd.pio_words[2] = BF(cmd->arg, SSP_CMD1_CMD_ARG);
+	ssp_cmd1 = BF(cmd->arg, SSP_CMD1_CMD_ARG);
+	ssp_ctrl1 =
+	    BM_SSP_CTRL1_DMA_ENABLE |
+	    BM_SSP_CTRL1_RECV_TIMEOUT_IRQ_EN |
+	    BM_SSP_CTRL1_DATA_CRC_IRQ_EN |
+	    BM_SSP_CTRL1_DATA_TIMEOUT_IRQ_EN |
+	    BM_SSP_CTRL1_RESP_TIMEOUT_IRQ_EN |
+	    BM_SSP_CTRL1_RESP_ERR_IRQ_EN;
 
 	if (host->sdio_irq_en) {
-		dma_desc->cmd.pio_words[0] |= BM_SSP_CTRL0_SDIO_IRQ_CHECK;
-		dma_desc->cmd.pio_words[1] |= BM_SSP_CMD0_CONT_CLKING_EN \
+		ssp_ctrl0 |= BM_SSP_CTRL0_SDIO_IRQ_CHECK;
+		ssp_cmd0 |= BM_SSP_CMD0_CONT_CLKING_EN \
 			| BM_SSP_CMD0_SLOW_CLKING_EN;
 	}
 
+	/* following IO operations */
+	__raw_writel(ssp_ctrl0, host->ssp_base + HW_SSP_CTRL0);
+	__raw_writel(ssp_cmd0, host->ssp_base + HW_SSP_CMD0);
+	__raw_writel(ssp_cmd1, host->ssp_base + HW_SSP_CMD1);
+	/* clear these bits */
+	__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_CLR);
 	init_completion(&host->dma_done);
-	mxs_dma_reset(host->dmach);
-	if (mxs_dma_desc_append(host->dmach, host->dma_desc) < 0)
-		dev_err(host->dev, "mmc_dma_desc_append failed\n");
-	dev_dbg(host->dev, "%s start DMA.\n", __func__);
-	if (mxs_dma_enable(host->dmach) < 0)
-		dev_err(host->dev, "mmc_dma_enable failed\n");
+	__raw_writel(BM_SSP_CTRL0_RUN, host->ssp_base + HW_SSP_CTRL0_SET);
 
-	wait_for_completion(&host->dma_done);
+	while (__raw_readl(host->ssp_base + HW_SSP_CTRL0)
+		       & BM_SSP_CTRL0_RUN)
+		continue;
+	while (__raw_readl(host->ssp_base + HW_SSP_STATUS)
+		       & BM_SSP_STATUS_BUSY)
+		continue;
+	host->status =
+		__raw_readl(host->ssp_base + HW_SSP_STATUS);
+	c1 = __raw_readl(host->ssp_base + HW_SSP_CTRL1);
+	__raw_writel(c1 & MXS_MMC_ERR_IRQ_BITS,
+			host->ssp_base + HW_SSP_CTRL1_CLR);
+	/* reenable these bits */
+	__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_SET);
+	/* end IO operations */
 
 	cmd->error = mxs_mmc_cmd_error(host->status);
 
 	if (cmd->error) {
 		dev_dbg(host->dev, "Command error 0x%x\n", cmd->error);
-		mxs_dma_reset(host->dmach);
 	}
-	mxs_dma_disable(host->dmach);
 }
 
 /* Send the ac command to the device */
 static void mxs_mmc_ac(struct mxs_mmc_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
-	struct mxs_dma_desc *dma_desc = host->dma_desc;
 	u32 ignore_crc, resp, long_resp;
 	u32 ssp_ctrl0;
 	u32 ssp_cmd0;
 	u32 ssp_cmd1;
-	unsigned long flags;
+	u32 ssp_ctrl1;
+	u32 c1;
 
 	ignore_crc = (mmc_resp_type(cmd) & MMC_RSP_CRC) ?
 	    0 : BM_SSP_CTRL0_IGNORE_CRC;
@@ -307,16 +331,16 @@ static void mxs_mmc_ac(struct mxs_mmc_host *host)
 	long_resp = (mmc_resp_type(cmd) & MMC_RSP_136) ?
 	    BM_SSP_CTRL0_LONG_RESP : 0;
 
-	dma_desc->cmd.cmd.bits.command = NO_DMA_XFER;
-	dma_desc->cmd.cmd.bits.irq = 1;
-	dma_desc->cmd.cmd.bits.dec_sem = 1;
-	dma_desc->cmd.cmd.bits.wait4end = 1;
-	dma_desc->cmd.cmd.bits.pio_words = 3;
-	dma_desc->cmd.cmd.bits.bytes = 0;
-
 	ssp_ctrl0 = BM_SSP_CTRL0_ENABLE | ignore_crc | long_resp | resp;
 	ssp_cmd0 = BF(cmd->opcode, SSP_CMD0_CMD);
 	ssp_cmd1 = BF(cmd->arg, SSP_CMD1_CMD_ARG);
+	ssp_ctrl1 =
+		BM_SSP_CTRL1_DMA_ENABLE |
+		BM_SSP_CTRL1_RECV_TIMEOUT_IRQ_EN |
+		BM_SSP_CTRL1_DATA_CRC_IRQ_EN |
+		BM_SSP_CTRL1_DATA_TIMEOUT_IRQ_EN |
+		BM_SSP_CTRL1_RESP_TIMEOUT_IRQ_EN |
+		BM_SSP_CTRL1_RESP_ERR_IRQ_EN;
 
 	if (host->sdio_irq_en) {
 		ssp_ctrl0 |= BM_SSP_CTRL0_SDIO_IRQ_CHECK;
@@ -324,18 +348,29 @@ static void mxs_mmc_ac(struct mxs_mmc_host *host)
 			| BM_SSP_CMD0_SLOW_CLKING_EN;
 	}
 
-	dma_desc->cmd.pio_words[0] = ssp_ctrl0;
-	dma_desc->cmd.pio_words[1] = ssp_cmd0;
-	dma_desc->cmd.pio_words[2] = ssp_cmd1;
-
-	mxs_dma_reset(host->dmach);
+	/* following IO operations */
+	__raw_writel(ssp_ctrl0, host->ssp_base + HW_SSP_CTRL0);
+	__raw_writel(ssp_cmd0, host->ssp_base + HW_SSP_CMD0);
+	__raw_writel(ssp_cmd1, host->ssp_base + HW_SSP_CMD1);
+	/* clear these bits */
+	__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_CLR);
 	init_completion(&host->dma_done);
-	if (mxs_dma_desc_append(host->dmach, host->dma_desc) < 0)
-		dev_err(host->dev, "mmc_dma_desc_append failed\n");
-	dev_dbg(host->dev, "%s start DMA.\n", __func__);
-	if (mxs_dma_enable(host->dmach) < 0)
-		dev_err(host->dev, "mmc_dma_enable failed\n");
-	wait_for_completion(&host->dma_done);
+	__raw_writel(BM_SSP_CTRL0_RUN, host->ssp_base + HW_SSP_CTRL0_SET);
+
+	while (__raw_readl(host->ssp_base + HW_SSP_CTRL0)
+		       & BM_SSP_CTRL0_RUN)
+		continue;
+	while (__raw_readl(host->ssp_base + HW_SSP_STATUS)
+		       & BM_SSP_STATUS_BUSY)
+		continue;
+	host->status =
+		__raw_readl(host->ssp_base + HW_SSP_STATUS);
+	c1 = __raw_readl(host->ssp_base + HW_SSP_CTRL1);
+	__raw_writel(c1 & MXS_MMC_ERR_IRQ_BITS,
+			host->ssp_base + HW_SSP_CTRL1_CLR);
+	/* reenable these bits */
+	__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_SET);
+	/* end IO operations */
 
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:
@@ -370,9 +405,7 @@ static void mxs_mmc_ac(struct mxs_mmc_host *host)
 
 	if (cmd->error) {
 		dev_dbg(host->dev, "Command error 0x%x\n", cmd->error);
-		mxs_dma_reset(host->dmach);
 	}
-	mxs_dma_disable(host->dmach);
 }
 
 /* Copy data between sg list and dma buffer */
@@ -450,8 +483,59 @@ static void __init_reg(struct device *dev, struct regulator **pp_reg)
 #endif
 }
 
+static int mxs_mmc_map_sg(struct mxs_mmc_host *host, int is_reading)
+{
+	struct mxs_dma_desc *dma_desc = host->dma_desc;
+	struct mmc_data *data = host->cmd->data;
+	struct scatterlist *sg;
+	unsigned int sg_len;
+	int count = 0;
+
+	BUG_ON(!data);
+
+	sg_len = dma_map_sg(mmc_dev(host->mmc), data->sg,
+		data->sg_len, is_reading ? \
+		DMA_FROM_DEVICE : DMA_TO_DEVICE);
+	for_each_sg(data->sg, sg, sg_len, count) {
+		if (count == PAGE_SIZE / sizeof(*dma_desc)) {
+			dma_unmap_sg(mmc_dev(host->mmc), data->sg,
+				data->sg_len, is_reading ? \
+				DMA_FROM_DEVICE : DMA_TO_DEVICE);
+			return 0;
+		}
+
+		dma_desc[count].cmd.next = 0;
+		dma_desc[count].cmd.cmd.data = 0;
+
+		dma_desc[count].cmd.address = (u32)sg->dma_address;
+		dma_desc[count].address = host->dma_desc_phys + \
+					sizeof(*dma_desc) * count;
+		dma_desc[count].cmd.cmd.bits.command = is_reading ? \
+						DMA_WRITE : DMA_READ;
+		dma_desc[count].cmd.cmd.bits.halt_on_terminate = 1;
+
+		if (count == 0)
+			dma_desc[count].cmd.cmd.bits.pio_words = 3;
+
+		dma_desc[count].cmd.cmd.bits.bytes = sg->length;
+		dma_desc[count].cmd.cmd.bits.dec_sem = 1;
+	}
+	dma_desc[count - 1].cmd.cmd.bits.irq = 1;
+	dma_desc[count - 1].cmd.cmd.bits.wait4end = 1;
+
+	return count;
+}
+
+static void mxs_mmc_unmap_sg(struct mxs_mmc_host *host, int is_reading)
+{
+	struct mmc_data *data = host->cmd->data;
+
+	dma_unmap_sg(mmc_dev(host->mmc), data->sg, data->sg_len,
+		is_reading ? DMA_FROM_DEVICE : DMA_TO_DEVICE);
+}
+
 /* Send adtc command to the card */
-static void mxs_mmc_adtc(struct mxs_mmc_host *host)
+static void mxs_mmc_adtc(struct mxs_mmc_host *host, int polling_mode)
 {
 	struct mmc_command *cmd = host->cmd;
 	struct mxs_dma_desc *dma_desc = host->dma_desc;
@@ -459,7 +543,7 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 	int is_reading = 0;
 	unsigned int copy_size;
 	unsigned int ssp_ver_major;
-
+	int desc_count = 0;
 	u32 ssp_ctrl0;
 	u32 ssp_cmd0;
 	u32 ssp_cmd1;
@@ -468,7 +552,7 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 
 	u32 data_size = cmd->data->blksz * cmd->data->blocks;
 	u32 log2_block_size;
-	unsigned long flags;
+	u32 transfer_size = data_size;
 
 	ignore_crc = mmc_resp_type(cmd) & MMC_RSP_CRC ? 0 : 1;
 	resp = mmc_resp_type(cmd) & MMC_RSP_PRESENT ? 1 : 0;
@@ -483,9 +567,15 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 
 	if (cmd->data->flags & MMC_DATA_WRITE) {
 		dev_dbg(host->dev, "Data Write\n");
-		copy_size = mxs_sg_dma_copy(host, data_size, 1);
-		BUG_ON(copy_size < data_size);
 		is_reading = 0;
+		desc_count = mxs_mmc_map_sg(host, is_reading);
+
+		if (desc_count == 0) {
+			host->dma_desc->cmd.address = (u32) host->dma_buf_phys;
+			if (!polling_mode)
+				copy_size = mxs_sg_dma_copy(host, data_size, 1);
+			BUG_ON(copy_size < data_size);
+		}
 		if (!host->regulator)
 			__init_reg(host->dev, &host->regulator);
 		if (host->regulator)
@@ -495,6 +585,9 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 	} else if (cmd->data->flags & MMC_DATA_READ) {
 		dev_dbg(host->dev, "Data Read\n");
 		is_reading = 1;
+		desc_count = mxs_mmc_map_sg(host, is_reading);
+		if (desc_count == 0)
+			host->dma_desc->cmd.address = (u32) host->dma_buf_phys;
 		if (!host->regulator)
 			__init_reg(host->dev, &host->regulator);
 		if (host->regulator)
@@ -510,14 +603,21 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 	BUG_ON(cmd->data->flags & MMC_DATA_STREAM);
 	/* BUG_ON((data_size % 8) > 0); */
 
-	/* when is_reading is set, DMA controller performs WRITE operation. */
-	dma_desc->cmd.cmd.bits.command = is_reading ? DMA_WRITE : DMA_READ;
-	dma_desc->cmd.cmd.bits.irq = 1;
-	dma_desc->cmd.cmd.bits.dec_sem = 1;
-	dma_desc->cmd.cmd.bits.wait4end = 1;
-	dma_desc->cmd.cmd.bits.pio_words = 3;
-	dma_desc->cmd.cmd.bits.bytes = data_size;
+	if (polling_mode)
+		goto skip_dma_setup1;
 
+	/* when is_reading is set, DMA controller performs WRITE operation. */
+	if (desc_count == 0) {
+		dma_desc->cmd.cmd.bits.command = is_reading ? \
+						DMA_WRITE : DMA_READ;
+		dma_desc->cmd.cmd.bits.irq = 1;
+		dma_desc->cmd.cmd.bits.dec_sem = 1;
+		dma_desc->cmd.cmd.bits.wait4end = 1;
+		dma_desc->cmd.cmd.bits.pio_words = 3;
+		dma_desc->cmd.cmd.bits.bytes = data_size;
+	}
+
+skip_dma_setup1:
 	ssp_ver_major = __raw_readl(host->ssp_base + HW_SSP_VERSION) >> 24;
 	dev_dbg(host->dev, "ssp ver major is 0x%x\n", ssp_ver_major);
 	if (ssp_ver_major > 3) {
@@ -607,25 +707,137 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 
 	ssp_cmd1 = BF(cmd->arg, SSP_CMD1_CMD_ARG);
 
-	dma_desc->cmd.pio_words[0] = ssp_ctrl0;
-	dma_desc->cmd.pio_words[1] = ssp_cmd0;
-	dma_desc->cmd.pio_words[2] = ssp_cmd1;
+	if (!polling_mode) {
+		dma_desc[0].cmd.pio_words[0] = ssp_ctrl0;
+		dma_desc[0].cmd.pio_words[1] = ssp_cmd0;
+		dma_desc[0].cmd.pio_words[2] = ssp_cmd1;
 
-	/* Set the timeout count */
-	timeout = mxs_ns_to_ssp_ticks(host->clkrt, cmd->data->timeout_ns);
-	val = __raw_readl(host->ssp_base + HW_SSP_TIMING);
-	val &= ~(BM_SSP_TIMING_TIMEOUT);
-	val |= BF(timeout, SSP_TIMING_TIMEOUT);
-	__raw_writel(val, host->ssp_base + HW_SSP_TIMING);
+		/* Set the timeout count */
+		timeout = mxs_ns_to_ssp_ticks(host->clkrt, \
+			cmd->data->timeout_ns);
+		val = __raw_readl(host->ssp_base + HW_SSP_TIMING);
+		val &= ~(BM_SSP_TIMING_TIMEOUT);
+		val |= BF(timeout, SSP_TIMING_TIMEOUT);
+		__raw_writel(val, host->ssp_base + HW_SSP_TIMING);
+		init_completion(&host->dma_done);
+		mxs_dma_reset(host->dmach);
+		if (desc_count != 0) {
+			int i = 0;
 
-	init_completion(&host->dma_done);
-	mxs_dma_reset(host->dmach);
-	if (mxs_dma_desc_append(host->dmach, host->dma_desc) < 0)
-		dev_err(host->dev, "mmc_dma_desc_append failed\n");
-	dev_dbg(host->dev, "%s start DMA.\n", __func__);
-	if (mxs_dma_enable(host->dmach) < 0)
-		dev_err(host->dev, "mmc_dma_enable failed\n");
-	wait_for_completion(&host->dma_done);
+			while (i != desc_count) {
+				if (mxs_dma_desc_append(host->dmach, &host->dma_desc[i]) < 0)
+					dev_err(host->dev, "desc_append failed\n");
+				i++;
+			}
+		} else
+			if (mxs_dma_desc_append(host->dmach, host->dma_desc) < 0)
+				dev_err(host->dev, "desc_append failed\n");
+		dev_dbg(host->dev, "%s start DMA.\n", __func__);
+		if (mxs_dma_enable(host->dmach) < 0)
+			dev_err(host->dev, "mmc_dma_enable failed\n");
+		wait_for_completion(&host->dma_done);
+		if (desc_count != 0)
+			mxs_mmc_unmap_sg(host, is_reading);
+	} else {
+		int index = 0;
+		int len;
+		struct scatterlist *sg;
+		int size;
+		char *sgbuf;
+		u8 *p;
+		u32 data, status;
+		u32 ssp_status = (u32)host->ssp_base + HW_SSP_STATUS;
+		u32 ssp_data = (u32)host->ssp_base + HW_SSP_DATA;
+		u32 ssp_ctl0 = (u32)host->ssp_base + HW_SSP_CTRL0;
+		u32 ssp_ctrl1;
+		u32 c1;
+
+		sg = host->cmd->data->sg;
+		len = host->cmd->data->sg_len;
+
+		ssp_ctrl1 =
+			BM_SSP_CTRL1_DMA_ENABLE |
+			BM_SSP_CTRL1_RECV_TIMEOUT_IRQ_EN |
+			BM_SSP_CTRL1_DATA_CRC_IRQ_EN |
+			BM_SSP_CTRL1_DATA_TIMEOUT_IRQ_EN |
+			BM_SSP_CTRL1_RESP_TIMEOUT_IRQ_EN |
+			BM_SSP_CTRL1_RESP_ERR_IRQ_EN;
+		__raw_writel(ssp_ctrl0, host->ssp_base + HW_SSP_CTRL0);
+		__raw_writel(ssp_cmd0, host->ssp_base + HW_SSP_CMD0);
+		__raw_writel(ssp_cmd1, host->ssp_base + HW_SSP_CMD1);
+		/* clear these bits */
+		__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_CLR);
+		init_completion(&host->dma_done);
+		__raw_writel(BM_SSP_CTRL0_RUN, ssp_ctl0 + 4);
+
+		while (__raw_readl(host->ssp_base + HW_SSP_CTRL0) & \
+			BM_SSP_STATUS_CMD_BUSY)
+			continue;
+
+		while (transfer_size) {
+			sgbuf = kmap_atomic(sg_page(&sg[index]), \
+				KM_BIO_SRC_IRQ) + sg[index].offset;
+
+			p = (u8 *)sgbuf;
+			size = transfer_size < sg[index].length ? \
+				transfer_size : sg[index].length;
+
+			if (is_reading) {
+				while (size) {
+					status = __raw_readl(ssp_status);
+					if (status & BM_SSP_STATUS_FIFO_EMPTY)
+						continue;
+					data = __raw_readl(ssp_data);
+					if ((u32)p & 0x3) {
+						*p++ = data & 0xff;
+						*p++ = (data >> 8) & 0xff;
+						*p++ = (data >> 16) & 0xff;
+						*p++ = (data >> 24) & 0xff;
+					} else {
+						*(u32 *)p = data;
+						p += 4;
+					}
+					transfer_size -= 4;
+					size -= 4;
+				}
+			} else {
+				while (size) {
+					status = __raw_readl(ssp_status);
+					if (status & BM_SSP_STATUS_FIFO_FULL)
+						continue;
+					if ((u32)p & 0x3)
+						data = p[0] | \
+							(p[1] << 8) | \
+							(p[2] << 16) | \
+							(p[3] << 24);
+					else
+						data = *(u32 *)p;
+
+					__raw_writel(data, ssp_data);
+					transfer_size -= 4;
+					size -= 4;
+					p += 4;
+				}
+			}
+			kunmap_atomic(sgbuf, KM_BIO_SRC_IRQ);
+			index++;
+		}
+		status = BM_SSP_STATUS_BUSY | \
+			BM_SSP_STATUS_DATA_BUSY | \
+			BM_SSP_STATUS_CMD_BUSY;
+		while (__raw_readl(host->ssp_base + HW_SSP_STATUS) & status)
+			continue;
+
+		cmd->data->bytes_xfered = data_size;
+
+		host->status =
+			__raw_readl(host->ssp_base + HW_SSP_STATUS);
+		c1 = __raw_readl(host->ssp_base + HW_SSP_CTRL1);
+		__raw_writel(c1 & MXS_MMC_ERR_IRQ_BITS,
+			host->ssp_base + HW_SSP_CTRL1_CLR);
+		/* reenable these bits */
+		__raw_writel(ssp_ctrl1, host->ssp_base + HW_SSP_CTRL1_SET);
+	}
 	if (host->regulator)
 		regulator_set_current_limit(host->regulator, 0, 0);
 
@@ -658,9 +870,13 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 
 	if (cmd->error) {
 		dev_dbg(host->dev, "Command error 0x%x\n", cmd->error);
+		if (polling_mode)
+			return;
 		mxs_dma_reset(host->dmach);
 	} else {
-		if (is_reading) {
+		if (polling_mode)
+			return;
+		if (!desc_count && is_reading) {
 			cmd->data->bytes_xfered =
 			    mxs_sg_dma_copy(host, data_size, 0);
 		} else
@@ -676,6 +892,8 @@ static void mxs_mmc_adtc(struct mxs_mmc_host *host)
 static void mxs_mmc_start_cmd(struct mxs_mmc_host *host,
 				   struct mmc_command *cmd)
 {
+	int data_size = 0;
+
 	dev_dbg(host->dev, "MMC command:\n"
 		"type: 0x%x opcode: %u, arg: %u, flags 0x%x retries: %u\n",
 		mmc_cmd_type(cmd), cmd->opcode, cmd->arg, cmd->flags,
@@ -694,7 +912,8 @@ static void mxs_mmc_start_cmd(struct mxs_mmc_host *host,
 		mxs_mmc_ac(host);
 		break;
 	case MMC_CMD_ADTC:
-		mxs_mmc_adtc(host);
+		data_size = host->cmd->data->blksz * host->cmd->data->blocks;
+		mxs_mmc_adtc(host, data_size < host->fastpath_sz);
 		break;
 	default:
 		dev_warn(host->dev, "Unknown MMC command\n");
@@ -768,20 +987,20 @@ mxs_set_sclk_speed(struct mxs_mmc_host *host, unsigned int hz)
 	 */
 	ssp = clk_get_rate(host->clk);
 
-	for (div1 = 2; div1 < 254; div1 += 2) {
+	for (div1 = 2; div1 <= 254; div1 += 2) {
 		div2 = ssp / hz / div1;
-		if (div2 < 0x100)
+		if (div2 <= 256)
 			break;
 	}
-	if (div1 >= 254) {
+	if (div1 > 254) {
 		dev_err(host->dev, "Cannot set clock to %dHz\n", hz);
 		return;
 	}
 
 	if (div2 == 0)
-		bus_clk = ssp / div1;
-	else
-		bus_clk = ssp / div1 / div2;
+		div2 = 1;
+
+	bus_clk = ssp / div1 / div2;
 
 	dev_dbg(host->dev, "Setting clock rate to %ld Hz [%x+%x] "
 		"(requested %d), source %ldk\n",
@@ -971,7 +1190,9 @@ static int mxs_mmc_dma_init(struct mxs_mmc_host *host, int reset)
 			goto out_mem;
 		}
 
-		host->dma_desc = mxs_dma_alloc_desc();
+		host->dma_desc = dma_alloc_coherent(host->dev, PAGE_SIZE,
+						   &host->dma_desc_phys,
+						   GFP_KERNEL);
 		if (host->dma_desc == NULL) {
 			dev_err(host->dev,
 				"Unable to allocate DMA descriptor\n");
@@ -979,9 +1200,8 @@ static int mxs_mmc_dma_init(struct mxs_mmc_host *host, int reset)
 			goto out_cmd;
 		}
 
-		host->dma_desc->cmd.next = (u32) host->dma_desc->address;
-		host->dma_desc->cmd.address = (u32) host->dma_buf_phys;
-		host->dma_desc->buffer = host->dma_buf;
+		memset(host->dma_desc, 0, PAGE_SIZE);
+		host->dma_desc->address = host->dma_desc_phys;
 	}
 
 	/* Reset DMA channel */
@@ -1013,7 +1233,8 @@ static void mxs_mmc_dma_release(struct mxs_mmc_host *host)
 	dma_free_coherent(host->dev, SSP_BUFFER_SIZE, host->dma_buf,
 			  host->dma_buf_phys);
 
-	mxs_dma_free_desc(host->dma_desc);
+	dma_free_coherent(host->dev, PAGE_SIZE, host->dma_desc,
+			  host->dma_desc_phys);
 	mxs_dma_release(host->dmach, host->dev);
 }
 
@@ -1107,7 +1328,7 @@ static int __init mxs_mmc_probe(struct platform_device *pdev)
 	host->dev = dev;
 
 	host->sdio_irq_en = 0;
-
+	host->fastpath_sz = mmc_data->fastpath_sz;
 	/* Set minimal clock rate */
 	host->clk = clk_get(dev, mmc_data->clock_mmc);
 	if (IS_ERR(host->clk)) {

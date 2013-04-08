@@ -1,14 +1,35 @@
 /*
- * Copyright 2009 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (c) 2009-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  */
 
 /*
- * The code contained herein is licensed under the GNU General Public
- * License. You may obtain a copy of the GNU General Public License
- * Version 2 or later at the following locations:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Freescale Semiconductor nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
  *
- * http://www.opensource.org/licenses/gpl-license.html
- * http://www.gnu.org/copyleft/gpl.html
+ *
+ * ALTERNATIVELY, this software may be distributed under the terms of the
+ * GNU General Public License ("GPL") as published by the Free Software
+ * Foundation, either version 2 of that License or (at your option) any
+ * later version.
+ *
+ * THIS SOFTWARE IS PROVIDED BY Freescale Semiconductor ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL Freescale Semiconductor BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 
@@ -614,7 +635,7 @@ hw_power_PowerSource_t hw_power_GetVddioPowerSource(void)
             // Check the offset.
             //------------------------------------------------------------------
 
-            if(hw_power_GetVdddLinRegOffset() ==
+            if(hw_power_GetVddioLinRegOffset() ==
 		HW_POWER_LINREG_OFFSET_DCDC_MODE)
             {
                 return HW_POWER_DCDC_LINREG_ON;
@@ -643,7 +664,7 @@ hw_power_PowerSource_t hw_power_GetVddioPowerSource(void)
         // VDDIO must be powered from DCDC with LinReg off.  Check the offset.
         //----------------------------------------------------------------------
 
-            if(hw_power_GetVdddLinRegOffset() ==
+            if(hw_power_GetVddioLinRegOffset() ==
 		HW_POWER_LINREG_OFFSET_DCDC_MODE)
             {
                 return HW_POWER_DCDC_LINREG_ON;
@@ -1471,14 +1492,9 @@ void hw_power_Enable4p2DcdcInput( bool bEnable )
     // so we need to temporarily disable the 5V brownout.
     //--------------------------------------------------------------------------
 	// Save the current 5V brownout setting so we can restore it later.
-	bool orig_vbusvalid_5vdetect=false;
-	bool orig_pwd_bo=false;
 	uint8_t orig_vbusvalid_threshold;
 	bool bPrev5vBoPwrdn;
 	bool bPrev5vDroop;
-
-	bPrev5vBoPwrdn = hw_power_Enable5vBrownoutPowerdown( false );
-	bPrev5vDroop = hw_power_EnableVdd5vDroopInterrupt( false );
 
 	if(bEnable)
 	{
@@ -1490,41 +1506,37 @@ void hw_power_Enable4p2DcdcInput( bool bEnable )
 				(HW_POWER_5VCTRL_RD() & BM_POWER_5VCTRL_VBUSVALID_TRSH)
 				>> BP_POWER_5VCTRL_VBUSVALID_TRSH;
 
-		if(HW_POWER_5VCTRL_RD() & BM_POWER_5VCTRL_VBUSVALID_5VDETECT)
-			orig_vbusvalid_5vdetect = true;
-
-		if(HW_POWER_MINPWR_RD() & BM_POWER_MINPWR_PWD_BO)
-			orig_pwd_bo=true;
-
 		/* disable mechanisms that get erroneously tripped by
 		* when setting the DCDC4P2 EN_DCDC
 		*/
-		HW_POWER_5VCTRL_CLR(BM_POWER_5VCTRL_VBUSVALID_5VDETECT);
+
 		HW_POWER_5VCTRL_CLR(BF_POWER_5VCTRL_VBUSVALID_TRSH(0x7));
-		HW_POWER_5VCTRL_SET(BM_POWER_MINPWR_PWD_BO);
+
+	    bPrev5vBoPwrdn = hw_power_Enable5vBrownoutPowerdown( false );
+	    bPrev5vDroop = hw_power_EnableVdd5vDroopInterrupt( false );
 
 	    BF_SET(POWER_DCDC4P2, ENABLE_DCDC);
 
 		// Allow settling time for the DC-DC.
 		hw_digctl_MicrosecondWait( 21 );
 
+
+    	if(HW_POWER_CTRL_RD() & BM_POWER_CTRL_VBUSVALID_IRQ)
+    	{
+
+            HW_POWER_5VCTRL_SET(BM_POWER_5VCTRL_PWD_CHARGE_4P2);
+            HW_POWER_5VCTRL_CLR(BM_POWER_5VCTRL_PWD_CHARGE_4P2);
+		}
+
+
+		hw_power_ClearVbusValidInterrupt();
+		hw_power_ClearVdd5vDroopInterrupt();
+
 		HW_POWER_5VCTRL_SET(BF_POWER_5VCTRL_VBUSVALID_TRSH(
 				orig_vbusvalid_threshold));
 
-		if(orig_vbusvalid_5vdetect){
-			HW_POWER_5VCTRL_SET(BM_POWER_5VCTRL_VBUSVALID_5VDETECT);
-		}
-
-		if(!orig_pwd_bo){
-			HW_POWER_5VCTRL_CLR(BM_POWER_MINPWR_PWD_BO);
-		}
-
-
-
 		// Restore the 5V brownout setting.
-		hw_power_ClearVbusValidInterrupt();
 		hw_power_Enable5vBrownoutPowerdown( bPrev5vBoPwrdn );
-		hw_power_ClearVdd5vDroopInterrupt();
 		hw_power_EnableVdd5vDroopInterrupt( bPrev5vDroop );
 	}
 	else

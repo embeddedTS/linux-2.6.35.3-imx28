@@ -4,7 +4,7 @@
  * Author: Steve Longerbeam <stevel@embeddedalley.com>
  *
  * Copyright (C) 2008 EmbeddedAlley Solutions Inc.
- * Copyright 2008-2010 Freescale Semiconductor, Inc.
+ * Copyright (C) 2008-2013 Freescale Semiconductor, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2, as
@@ -19,6 +19,7 @@
 #include <linux/io.h>
 #include <linux/sched.h>
 #include <linux/clk.h>
+#include <linux/suspend.h>
 #include <mach/ddi_bc.h>
 #include "ddi_bc_internal.h"
 #include <linux/regulator/consumer.h>
@@ -77,6 +78,13 @@ struct mxs_info {
 #define USB_N_SEND      0x10
 	int is_usb_online;
 	int onboard_vbus5v_online;
+
+#define NORMAL_SOURCE  0x00
+#define NO_DCDC_BATT_SOURCE 0x01
+#define NO_VDD5V_SOURCE 0x02
+	int powersource;
+	int is_5v_irq_detected;
+	u32	clks[10];
 };
 
 #define to_mxs_info(x) container_of((x), struct mxs_info, bat)
@@ -134,6 +142,10 @@ void init_protection(struct mxs_info *info)
 	/* InitializeFiqSystem(); */
 	ddi_power_InitOutputBrownouts();
 
+	if (info->powersource == NO_VDD5V_SOURCE) {
+		ddi_power_EnableBatteryBoInterrupt(true);
+		return;
+	}
 
 	/* if we start the kernel with 4p2 already started
 	 * by the bootlets, we need to hand off from this
@@ -206,6 +218,15 @@ static void check_and_handle_5v_connection(struct mxs_info *info)
 	switch (ddi_power_GetPmu5vStatus()) {
 
 	case new_5v_connection:
+
+		if (info->is_5v_irq_detected == 0) {
+			/* we must wait for irq_vdd5v handler run first to
+				reset info->sm_new_5v_connection_jiffies.
+				Otherwise the debounce checking is wrong.
+       */;
+			break;
+		}
+		info->is_5v_irq_detected = 0;
 		ddi_power_enable_5v_disconnect_detection();
 		info->sm_5v_connection_status = _5v_connected_unverified;
 
@@ -272,6 +293,15 @@ static void check_and_handle_5v_connection(struct mxs_info *info)
 
 	case new_5v_disconnection:
 
+
+		if (info->is_5v_irq_detected == 0) {
+			/* we must wait for irq_vdd5v handler run first to
+				reset info->sm_new_5v_disconnection_jiffies.
+				Otherwise the debounce checking is wrong.
+       */;
+			break;
+		}
+
 		ddi_bc_SetDisable();
 		ddi_bc_SetCurrentLimit(0);
 		if (info->regulator)
@@ -298,6 +328,7 @@ static void check_and_handle_5v_connection(struct mxs_info *info)
 				info->sm_5v_connection_status =
 					_5v_disconnected_verified;
 				ddi_power_execute_5v_to_battery_handoff();
+				info->is_5v_irq_detected = 0;
 				ddi_power_enable_5v_connect_detection();
 
 				/* part of handling for errata.
@@ -624,6 +655,10 @@ static int bc_sm_restart(struct mxs_info *info)
 	/* ungate power clk */
 	ddi_power_SetPowerClkGate(0);
 
+	/* if there is no 5V source, we don't need config battery charger */
+	if (info->powersource == NO_VDD5V_SOURCE)
+		goto out;
+
 	/*
 	 * config battery charger state machine and move it to the Disabled
 	 * state. This must be done before starting the state machine.
@@ -745,6 +780,7 @@ static irqreturn_t mxs_irq_vdd5v(int irq, void *cookie)
 		dev_dbg(info->dev, "new 5v connection detected\n");
 		info->sm_new_5v_connection_jiffies = jiffies;
 		mod_timer(&info->sm_timer, jiffies + 1);
+		info->is_5v_irq_detected = 1;
 		break;
 
 	case new_5v_disconnection:
@@ -761,6 +797,7 @@ static irqreturn_t mxs_irq_vdd5v(int irq, void *cookie)
 		dev_dbg(info->dev, "new 5v disconnection detected\n");
 		info->sm_new_5v_disconnection_jiffies = jiffies;
 		mod_timer(&info->sm_timer, jiffies + 1);
+		info->is_5v_irq_detected = 1;
 		break;
 
 	default:
@@ -782,19 +819,35 @@ static int mxs_bat_probe(struct platform_device *pdev)
 	/* enable usb device presence detection */
 	fsl_enable_usb_plugindetect();
 
+	info = kzalloc(sizeof(*info), GFP_KERNEL);
+	if (!info)
+		return -ENOMEM;
 
+	info->powersource = NORMAL_SOURCE;
 
-    /* check bit 11, bit 11 is set in power_prep.c if it is 5V only build.
-       we don't need initialize battery for 5V only build
+	platform_set_drvdata(pdev, info);
+
+	mutex_init(&info->sm_lock);
+
+	/* check bit 11, bit 11 is set in power_prep.c if it is 5V only build.
+			we don't need initialize battery for 5V only build
+	*/
+	if ((__raw_readl(base + HW_RTC_PERSISTENT1) & 0x800)) {
+			__raw_writel(0x800, base + HW_RTC_PERSISTENT1_CLR);
+
+			/* InitializeFiqSystem(); */
+			ddi_power_InitOutputBrownouts();
+			info->powersource = NO_DCDC_BATT_SOURCE;
+		return 0;
+	}
+
+    /* check bit 12, bit 12 is set in power_prep.c if it is battery only build.
     */
-	if((__raw_readl(base + HW_RTC_PERSISTENT1) & 0x800))
-    {
-	    __raw_writel(0x800, base + HW_RTC_PERSISTENT1_CLR);
+	if ((__raw_readl(base + HW_RTC_PERSISTENT1) & 0x1000)) {
+			__raw_writel(0x1000, base + HW_RTC_PERSISTENT1_CLR);
+			info->powersource = NO_VDD5V_SOURCE;
+	}
 
-        /* InitializeFiqSystem(); */
-	    ddi_power_InitOutputBrownouts();
-        return 0;
-    }
 
 	ret = ddi_power_init_battery();
 	if (ret) {
@@ -802,15 +855,11 @@ static int mxs_bat_probe(struct platform_device *pdev)
 		return 1;
 	}
 
-
 	if (!pdev->dev.platform_data) {
 		printk(KERN_ERR "%s: missing platform data\n", __func__);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto free_info;
 	}
-
-	info = kzalloc(sizeof(*info), GFP_KERNEL);
-	if (!info)
-		return -ENOMEM;
 
 	info->irq_vdd5v = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (info->irq_vdd5v == NULL) {
@@ -858,9 +907,6 @@ static int mxs_bat_probe(struct platform_device *pdev)
 	}
 #endif
 
-
-	platform_set_drvdata(pdev, info);
-
 	info->dev    = &pdev->dev;
 	info->sm_cfg = pdev->dev.platform_data;
 
@@ -889,7 +935,6 @@ static int mxs_bat_probe(struct platform_device *pdev)
 	info->sm_timer.data = (unsigned long)info;
 	info->sm_timer.function = state_machine_timer;
 
-	mutex_init(&info->sm_lock);
 	INIT_WORK(&info->sm_work, state_machine_work);
 
 	/* init LRADC channels to measure battery voltage and die temp */
@@ -1046,6 +1091,36 @@ static void mxs_bat_shutdown(struct platform_device *pdev)
 
 #ifdef CONFIG_PM
 
+suspend_state_t mxs_pm_get_target(void);
+
+static u32 power_clk_regs[] = {
+		HW_POWER_CTRL,
+		HW_POWER_5VCTRL,
+		HW_POWER_VDDDCTRL,
+		HW_POWER_VDDACTRL,
+		HW_POWER_VDDIOCTRL,
+};
+
+void backup_power_reg(struct mxs_info *info)
+{
+	int i;
+
+	if (mxs_pm_get_target() == PM_SUSPEND_MEM)  {
+		for (i = 0; i < ARRAY_SIZE(power_clk_regs); i++)
+			info->clks[i] = __raw_readl(REGS_POWER_BASE +	power_clk_regs[i]);
+  }
+}
+
+void resume_power_reg(struct mxs_info *info)
+{
+	int i;
+
+	if (mxs_pm_get_target() == PM_SUSPEND_MEM) {
+		for (i = 0; i < ARRAY_SIZE(power_clk_regs); i++)
+				__raw_writel(info->clks[i], REGS_POWER_BASE +	power_clk_regs[i]);
+	}
+}
+
 static int mxs_bat_suspend(struct platform_device *pdev, pm_message_t msg)
 {
 	struct mxs_info *info = platform_get_drvdata(pdev);
@@ -1053,10 +1128,12 @@ static int mxs_bat_suspend(struct platform_device *pdev, pm_message_t msg)
 	mutex_lock(&info->sm_lock);
 
 	/* enable USB 5v wake up so don't disable irq here*/
-
-	ddi_bc_SetDisable();
-	/* cancel state machine timer */
-	del_timer_sync(&info->sm_timer);
+	if (info->powersource == NORMAL_SOURCE) {
+		ddi_bc_SetDisable();
+		/* cancel state machine timer */
+		del_timer_sync(&info->sm_timer);
+	}
+	backup_power_reg(info);
 
 	mutex_unlock(&info->sm_lock);
 	return 0;
@@ -1069,39 +1146,44 @@ static int mxs_bat_resume(struct platform_device *pdev)
 
 	mutex_lock(&info->sm_lock);
 
-	if (is_ac_online()) {
-		/* ac supply connected */
-		dev_dbg(info->dev, "ac/5v present, enabling state machine\n");
+	resume_power_reg(info);
 
-		info->is_ac_online = 1;
-		info->is_usb_online = 0;
-		ddi_bc_SetCurrentLimit(
-			NON_USB_5V_SUPPLY_CURRENT_LIMIT_MA /*mA*/);
-		ddi_bc_SetEnable();
-	} else if (is_usb_online()) {
-		/* usb supply connected */
-		dev_dbg(info->dev, "usb/5v present, enabling state machine\n");
+	if (info->powersource == NORMAL_SOURCE) {
+		if (is_ac_online()) {
+			/* ac supply connected */
+			dev_dbg(info->dev,
+				"ac/5v present, enabling state machine\n");
 
-		info->is_ac_online = 0;
-		info->is_usb_online = 1;
-		ddi_bc_SetCurrentLimit(POWERED_USB_5V_CURRENT_LIMIT_MA /*mA*/);
-		ddi_bc_SetEnable();
-	} else {
-		/* not powered */
-		dev_dbg(info->dev, "%s: 5v not present\n", __func__);
+			info->is_ac_online = 1;
+			info->is_usb_online = 0;
+			ddi_bc_SetCurrentLimit(
+				NON_USB_5V_SUPPLY_CURRENT_LIMIT_MA /*mA*/);
+			ddi_bc_SetEnable();
+		} else if (is_usb_online()) {
+			/* usb supply connected */
+			dev_dbg(info->dev,
+				"usb/5v present, enabling state machine\n");
 
-		info->is_ac_online = 0;
-		info->is_usb_online = 0;
+			info->is_ac_online = 0;
+			info->is_usb_online = 1;
+			ddi_bc_SetCurrentLimit(POWERED_USB_5V_CURRENT_LIMIT_MA /*mA*/);
+			ddi_bc_SetEnable();
+		} else {
+			/* not powered */
+			dev_dbg(info->dev, "%s: 5v not present\n", __func__);
+
+			info->is_ac_online = 0;
+			info->is_usb_online = 0;
+		}
+
+		/* enable 5v irq */
+		__raw_writel(BM_POWER_CTRL_ENIRQ_VDD5V_GT_VDDIO,
+			REGS_POWER_BASE + HW_POWER_CTRL_SET);
+
+		/* reschedule calls to state machine */
+		mod_timer(&info->sm_timer,
+			jiffies + msecs_to_jiffies(cfg->u32StateMachinePeriod));
 	}
-
-	/* enable 5v irq */
-	__raw_writel(BM_POWER_CTRL_ENIRQ_VDD5V_GT_VDDIO,
-		REGS_POWER_BASE + HW_POWER_CTRL_SET);
-
-	/* reschedule calls to state machine */
-	mod_timer(&info->sm_timer,
-		  jiffies + msecs_to_jiffies(cfg->u32StateMachinePeriod));
-
 	mutex_unlock(&info->sm_lock);
 	return 0;
 }
@@ -1152,11 +1234,11 @@ static int __init mxs_bat_init(void)
     /* check bit 11, bit 11 is set in power_prep.c if it is 5V only build.
     */
 
-	if((__raw_readl(IO_ADDRESS(RTC_PHYS_ADDR) + HW_RTC_PERSISTENT1) & 0x800))
-    {
-        no_battery = true;
-        printk(KERN_NOTICE "This is 5V only build. \r\n");
-    }
+	if ((__raw_readl(IO_ADDRESS(RTC_PHYS_ADDR) + HW_RTC_PERSISTENT1)
+		& 0x800)) {
+		no_battery = true;
+		printk(KERN_NOTICE "This is 5V only build. \r\n");
+	}
 
 	ret = claim_fiq(&power_fiq);
 	if (ret) {
@@ -1171,8 +1253,10 @@ static int __init mxs_bat_init(void)
 		disable_irq(IRQ_DCDC4P2_BRNOUT);
 		disable_irq(IRQ_BATT_BRNOUT);
 		disable_irq(IRQ_VDDD_BRNOUT);
+#ifndef CONFIG_ARCH_MX23
 		disable_irq(IRQ_VDDA_BRNOUT);
-		if(no_battery)
+#endif
+		if (no_battery)
 			disable_irq(IRQ_VDDIO_BRNOUT);
 #ifndef CONFIG_ARCH_MX28
 		disable_irq(IRQ_VDD18_BRNOUT);
@@ -1184,8 +1268,10 @@ static int __init mxs_bat_init(void)
 		mxs_set_irq_fiq(IRQ_DCDC4P2_BRNOUT, 1);
 		mxs_set_irq_fiq(IRQ_BATT_BRNOUT, 1);
 		mxs_set_irq_fiq(IRQ_VDDD_BRNOUT, 1);
+#ifndef CONFIG_ARCH_MX23
 		mxs_set_irq_fiq(IRQ_VDDA_BRNOUT, 1);
-		if(no_battery)
+#endif
+		if (no_battery)
 			mxs_set_irq_fiq(IRQ_VDDIO_BRNOUT, 1);
 #ifndef CONFIG_ARCH_MX28
 		mxs_set_irq_fiq(IRQ_VDD18_BRNOUT, 1);
@@ -1199,8 +1285,10 @@ static int __init mxs_bat_init(void)
 		enable_irq(IRQ_DCDC4P2_BRNOUT);
 		enable_irq(IRQ_BATT_BRNOUT);
 		enable_irq(IRQ_VDDD_BRNOUT);
+#ifndef CONFIG_ARCH_MX23
 		enable_irq(IRQ_VDDA_BRNOUT);
-		if(no_battery)
+#endif
+		if (no_battery)
 			enable_irq(IRQ_VDDIO_BRNOUT);
 #ifndef CONFIG_ARCH_MX28
 		enable_irq(IRQ_VDD18_BRNOUT);

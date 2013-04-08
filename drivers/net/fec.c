@@ -46,6 +46,7 @@
 #include <linux/swab.h>
 #include <linux/phy.h>
 #include <linux/fec.h>
+#include <linux/suspend.h>
 
 #include <asm/cacheflush.h>
 
@@ -938,7 +939,9 @@ static struct ethtool_ops fec_enet_ethtool_ops = {
 static int fec_enet_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 {
 	struct fec_enet_private *fep = netdev_priv(dev);
+	struct fec_ptp_private *priv = fep->ptp_priv;
 	struct phy_device *phydev = fep->phy_dev;
+	int retVal = 0;
 
 	if (!netif_running(dev))
 		return -EINVAL;
@@ -946,7 +949,16 @@ static int fec_enet_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 	if (!phydev)
 		return -ENODEV;
 
-	return phy_mii_ioctl(phydev, rq, cmd);
+	if ((cmd >= PTP_ENBL_TXTS_IOCTL) &&
+			(cmd <= PTP_FLUSH_TIMESTAMP)) {
+		if (fep->ptimer_present)
+			retVal = fec_ptp_ioctl(priv, rq, cmd);
+		else
+			retVal = -ENODEV;
+	} else
+		retVal = phy_mii_ioctl(phydev, rq, cmd);
+
+	return retVal;
 }
 
 static void fec_enet_free_buffers(struct net_device *dev)
@@ -1430,7 +1442,7 @@ fec_stop(struct net_device *dev)
 
 #ifdef CONFIG_ARCH_MXS
 	/* FIXME: we have to enable enet to keep mii interrupt works. */
-	writel(2, fep->hwp + FEC_ECNTRL);
+	writel((0x1 << 1), fep->hwp + FEC_ECNTRL);
 
 	/* Check MII or RMII */
 	if (fep->phy_interface == PHY_INTERFACE_MODE_RMII)
@@ -1637,19 +1649,40 @@ fec_suspend(struct platform_device *dev, pm_message_t state)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_MXS
+
+suspend_state_t mxs_pm_get_target(void);
+
+#endif
+
+
 static int
 fec_resume(struct platform_device *dev)
 {
 	struct net_device *ndev = platform_get_drvdata(dev);
+  struct fec_platform_data *pdata;
 	struct fec_enet_private *fep;
 
 	if (ndev) {
 		fep = netdev_priv(ndev);
+    pdata = fep->pdev->dev.platform_data;
 		if (netif_running(ndev)) {
 			clk_enable(fep->clk);
 			fec_restart(ndev, fep->full_duplex);
 			netif_device_attach(ndev);
 		}
+    else {
+#ifdef CONFIG_ARCH_MXS
+			if (mxs_pm_get_target() == PM_SUSPEND_MEM)  {
+				clk_enable(fep->clk);
+				/* PHY reset should be done during clock on */
+				if (pdata && pdata->init)
+					pdata->init();
+				fec_restart(ndev, 0);
+				clk_disable(fep->clk);
+      }
+#endif
+    }
 	}
 	return 0;
 }

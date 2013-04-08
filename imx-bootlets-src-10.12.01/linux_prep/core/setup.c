@@ -240,6 +240,18 @@ static void setup_mem_tag (void)
 	params = tag_next(params);
 }
 
+static void setup_revision_tag(void)
+{
+	u32 rev = 0;
+	u32 get_board_rev(void);
+
+	rev = get_board_rev();
+	params->hdr.tag = ATAG_REVISION;
+	params->hdr.size = tag_size (tag_revision);
+	params->u.revision.rev = rev;
+	params = tag_next (params);
+}
+
 static void setup_initrd_tag(void)
 {
 	params->hdr.tag = ATAG_INITRD2 ;
@@ -371,6 +383,7 @@ u32 setup_tags (void)
 	setup_mem_tag();
 	setup_initrd_tag();
 	setup_cmdline_tag(cmdlines[magic_key]);
+	setup_revision_tag();
 	setup_end_tag();
 
 	return (u32)ATAGS_BASE_ADDRESS;

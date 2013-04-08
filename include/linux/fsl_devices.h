@@ -6,7 +6,7 @@
  *
  * Maintainer: Kumar Gala <galak@kernel.crashing.org>
  *
- * Copyright 2004-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2004-2013 Freescale Semiconductor, Inc. All Rights Reserved.
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -67,6 +67,13 @@ enum fsl_usb2_phy_modes {
 	FSL_USB2_PHY_SERIAL,
 };
 
+enum usb_wakeup_event {
+	WAKEUP_EVENT_INVALID,
+	WAKEUP_EVENT_VBUS,
+	WAKEUP_EVENT_ID,
+	WAKEUP_EVENT_DPDM, /* for remote wakeup */
+};
+
 struct fsl_usb2_wakeup_platform_data;
 struct platform_device;
 struct fsl_usb2_platform_data {
@@ -93,7 +100,8 @@ struct fsl_usb2_platform_data {
 	void (*wake_up_enable)(struct fsl_usb2_platform_data *pdata, bool on);
 	void (*phy_lowpower_suspend)(struct fsl_usb2_platform_data *pdata, bool on);
 	void (*platform_driver_vbus)(bool on); /* platform special function for vbus shutdown/open */
-	bool (*is_wakeup_event)(struct fsl_usb2_platform_data *pdata);
+	enum usb_wakeup_event (*is_wakeup_event)(struct fsl_usb2_platform_data *pdata);
+	void (*wakeup_handler)(struct fsl_usb2_platform_data *pdata);
 	unsigned			big_endian_mmio:1;
 	unsigned			big_endian_desc:1;
 	unsigned			es:1;	/* need USBMODE:ES */
@@ -105,7 +113,7 @@ struct fsl_usb2_platform_data {
 	unsigned			already_suspended:1;
 	unsigned            lowpower:1;
 	unsigned            irq_delay:1;
-	unsigned            wakeup_event:1;
+	enum usb_wakeup_event            wakeup_event;
 	struct fsl_usb2_wakeup_platform_data *wakeup_pdata;
 
 	u32				id_gpio;
@@ -128,6 +136,7 @@ struct fsl_usb2_platform_data {
 struct fsl_usb2_wakeup_platform_data {
 	char *name;
 	void (*usb_clock_for_pm) (bool);
+	void (*usb_wakeup_exhandle) (void);
 	struct fsl_usb2_platform_data *usb_pdata[3];
 	/* This waitqueue is used to wait "usb_wakeup thread" to finish
 	 * during system resume routine. "usb_wakeup theard" should be finished
@@ -139,7 +148,6 @@ struct fsl_usb2_wakeup_platform_data {
 	 */
 	bool usb_wakeup_is_pending;
 };
-
 
 struct spi_device;
 
@@ -624,5 +632,16 @@ int fsl_deep_sleep(void);
 #else
 static inline int fsl_deep_sleep(void) { return 0; }
 #endif
+
+struct mxs_perfmon_bit_config {
+	int reg;
+	int field;
+	const char *name;
+};
+
+struct mxs_platform_perfmon_data {
+	struct mxs_perfmon_bit_config *bit_config_tab;
+	int bit_config_cnt;
+};
 
 #endif /* _FSL_DEVICE_H_ */
