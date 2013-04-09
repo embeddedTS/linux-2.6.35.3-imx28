@@ -49,7 +49,7 @@
 
 #include "regs-digctl.h"
 #include "device.h"
-#if defined(CONFIG_MACH_TS7600
+#if defined(CONFIG_MACH_TS7600)
   #include "ts7600.h"
 #else
   #include "mx28evk.h"
