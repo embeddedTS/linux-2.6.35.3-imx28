@@ -215,6 +215,8 @@ static int fec_enet_close(struct net_device *dev);
 static void fec_restart(struct net_device *dev, int duplex);
 static void fec_stop(struct net_device *dev);
 
+int hasphy = 1;
+
 /* FEC MII MMFR bits definition */
 #define FEC_MMFR_ST		(1 << 30)
 #define FEC_MMFR_OP_READ	(2 << 28)
@@ -723,10 +725,13 @@ static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 	 * PHY has link, only when boards use the Marvell switch
 	 */
 	if(mii_id == 0x18) {
-		if(regnum == 0x0) return 0x3100;
-		if(regnum == 0x1) return 0x782d;
-		if(regnum == 0x4) return 0x1e1;
-		if(regnum == 0x5) return 0xc5e1;
+		switch(regnum) {
+			case 0x0: return 0x3100;
+			case 0x1: return 0x782d;
+			case 0x4: return 0x1e1;
+			case 0x5: return 0xc5e1;
+		}
+		hasphy = 0;
 	}
 	/* start a read op */
 	writel(FEC_MMFR_ST | FEC_MMFR_OP_READ |
@@ -750,6 +755,9 @@ static int fec_enet_mdio_write(struct mii_bus *bus, int mii_id, int regnum,
 {
 	struct fec_enet_private *fep = bus->priv;
 	unsigned long time_left;
+
+	/* If this is a switch, we want to just exit and not do a write */
+	if(mii_id == 0x18) return 0;
 
 	fep->mii_timeout = 0;
 	init_completion(&fep->mdio_done);
@@ -828,13 +836,11 @@ static int fec_enet_mii_probe(struct net_device *dev)
 
 static struct mii_bus *fec_enet_mii_init(struct platform_device *pdev)
 {
-	struct platform_device *enet_pdev = pdev->dev.platform_data;
-	struct net_device *dev = platform_get_drvdata(enet_pdev);
+	struct net_device *dev = platform_get_drvdata(pdev);
 	struct fec_enet_private *fep = netdev_priv(dev);
 	int err = -ENXIO, i;
 
 	fep->mii_timeout = 0;
-	clk_enable(fep->clk);
 
 	/*
 	 * Set MII speed to 2.5 MHz (= clk_get_rate() / 2 * phy_speed)
@@ -873,10 +879,8 @@ static struct mii_bus *fec_enet_mii_init(struct platform_device *pdev)
 
 	if (mdiobus_register(fep->mii_bus))
 		goto err_out_free_mdio_irq;
-	
-	clk_disable(fep->clk);
 
-	return 0; //fep->mii_bus;
+	return fep->mii_bus;
 
 err_out_free_mdio_irq:
 	kfree(fep->mii_bus->irq);
@@ -1300,7 +1304,7 @@ fec_restart(struct net_device *dev, int duplex)
 	int val;
 
 #ifdef CONFIG_ARCH_MXS
-	if (pdata && pdata->init)
+	if (pdata && pdata->init && hasphy)
 		ret = pdata->init();
 #endif
 
@@ -1532,8 +1536,8 @@ fec_probe(struct platform_device *pdev)
 	clk_enable(fep->clk);
 
 	/* PHY reset should be done during clock on */
-	if (pdata && pdata->init)
-	  ret = pdata->init();
+	if (pdata && pdata->init && hasphy)
+		ret = pdata->init();
 	if (ret)
 		goto failed_platform_init;
 	/*
@@ -1552,7 +1556,7 @@ fec_probe(struct platform_device *pdev)
 	if (ret)
 		goto failed_init;
 
-	/*if (pdev->id == 0) {
+	if (pdev->id == 0) {
 		fec_mii_bus = fec_enet_mii_init(pdev);
 		if (IS_ERR(fec_mii_bus)) {
 			ret = -ENOMEM;
@@ -1560,7 +1564,7 @@ fec_probe(struct platform_device *pdev)
 		}
 	} else {
 		fep->mii_bus = fec_mii_bus;
-	}*/
+	}
 
 	if (fec_ptp_malloc_priv(&(fep->ptp_priv))) {
 		if (fep->ptp_priv) {
@@ -1676,7 +1680,7 @@ fec_resume(struct platform_device *dev)
 			if (mxs_pm_get_target() == PM_SUSPEND_MEM)  {
 				clk_enable(fep->clk);
 				/* PHY reset should be done during clock on */
-				if (pdata && pdata->init)
+				if (pdata && pdata->init && hasphy)
 					pdata->init();
 				fec_restart(ndev, 0);
 				clk_disable(fep->clk);
@@ -1698,24 +1702,12 @@ static struct platform_driver fec_driver = {
 	.resume  = fec_resume,
 };
 
-static struct platform_driver fec_mii_bus_driver = {
-	.driver = {
-		.name	= "fec_enet_mii_bus",
-		.owner	= THIS_MODULE,
-	},
-	.probe	= fec_enet_mii_init,
-	.remove	= __devexit_p(fec_enet_mii_remove),
-};
-
 static int __init
 fec_enet_module_init(void)
 {
-	int ret;
 	printk(KERN_INFO "FEC Ethernet Driver\n");
-	ret = platform_driver_register(&fec_driver);
-	if(!ret)
-		return platform_driver_register(&fec_mii_bus_driver); //fec_driver);
-	return -ENODEV;
+
+	return platform_driver_register(&fec_driver);
 }
 
 static void __exit

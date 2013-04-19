@@ -805,7 +805,7 @@ static struct pin_desc mx28evk_eth_pins[] = {
 	 .name = "ENET_CLK",
 	 .id = PINID_ENET_CLK,
 	 .fun = PIN_FUN1,
-	 .strength = PAD_8MA,
+	 .strength = PAD_12MA,
 	 .pull = 1,
 	 .pullup = 1,
 	 .voltage = PAD_3_3V,
@@ -1156,8 +1156,10 @@ int mx28evk_enet_gpio_init(void)
 	 * mdelay(10) delay 50ms actually.
 	 * So change delay to 50ms after timer issue fix.
 	 */
-	mdelay(50);
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+	mdelay(1);
+	gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT));
+	/* Most a reset should last from switch chip is 14ms */
+	mdelay(15);
 
 	return 0;
 }
