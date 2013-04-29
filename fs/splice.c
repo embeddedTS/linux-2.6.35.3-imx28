@@ -1104,8 +1104,8 @@ EXPORT_SYMBOL(generic_splice_sendpage);
 /*
  * Attempt to initiate a splice from pipe to file.
  */
-static long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
-			   loff_t *ppos, size_t len, unsigned int flags)
+long vfs_splice_from(struct pipe_inode_info *pipe, struct file *out,
+		     loff_t *ppos, size_t len, unsigned int flags)
 {
 	ssize_t (*splice_write)(struct pipe_inode_info *, struct file *,
 				loff_t *, size_t, unsigned int);
@@ -1128,13 +1128,14 @@ static long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
 
 	return splice_write(pipe, out, ppos, len, flags);
 }
+EXPORT_SYMBOL_GPL(vfs_splice_from);
 
 /*
  * Attempt to initiate a splice from a file to a pipe.
  */
-static long do_splice_to(struct file *in, loff_t *ppos,
-			 struct pipe_inode_info *pipe, size_t len,
-			 unsigned int flags)
+long vfs_splice_to(struct file *in, loff_t *ppos,
+		   struct pipe_inode_info *pipe, size_t len,
+		   unsigned int flags)
 {
 	ssize_t (*splice_read)(struct file *, loff_t *,
 			       struct pipe_inode_info *, size_t, unsigned int);
@@ -1154,6 +1155,7 @@ static long do_splice_to(struct file *in, loff_t *ppos,
 
 	return splice_read(in, ppos, pipe, len, flags);
 }
+EXPORT_SYMBOL_GPL(vfs_splice_to);
 
 /**
  * splice_direct_to_actor - splices data directly between two non-pipes
@@ -1223,7 +1225,7 @@ ssize_t splice_direct_to_actor(struct file *in, struct splice_desc *sd,
 		size_t read_len;
 		loff_t pos = sd->pos, prev_pos = pos;
 
-		ret = do_splice_to(in, &pos, pipe, len, flags);
+		ret = vfs_splice_to(in, &pos, pipe, len, flags);
 		if (unlikely(ret <= 0))
 			goto out_release;
 
@@ -1282,8 +1284,8 @@ static int direct_splice_actor(struct pipe_inode_info *pipe,
 {
 	struct file *file = sd->u.file;
 
-	return do_splice_from(pipe, file, &file->f_pos, sd->total_len,
-			      sd->flags);
+	return vfs_splice_from(pipe, file, &file->f_pos, sd->total_len,
+			       sd->flags);
 }
 
 /**
@@ -1380,7 +1382,7 @@ static long do_splice(struct file *in, loff_t __user *off_in,
 		} else
 			off = &out->f_pos;
 
-		ret = do_splice_from(ipipe, out, off, len, flags);
+		ret = vfs_splice_from(ipipe, out, off, len, flags);
 
 		if (off_out && copy_to_user(off_out, off, sizeof(loff_t)))
 			ret = -EFAULT;
@@ -1400,7 +1402,7 @@ static long do_splice(struct file *in, loff_t __user *off_in,
 		} else
 			off = &in->f_pos;
 
-		ret = do_splice_to(in, off, opipe, len, flags);
+		ret = vfs_splice_to(in, off, opipe, len, flags);
 
 		if (off_in && copy_to_user(off_in, off, sizeof(loff_t)))
 			ret = -EFAULT;
