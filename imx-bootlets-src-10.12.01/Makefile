@@ -1,4 +1,3 @@
-export CROSS_COMPILE
 MEM_TYPE ?= MEM_DDR1
 export MEM_TYPE
 
@@ -8,7 +7,8 @@ DFT_UBOOT=$(DEV_IMAGE)/boot/u-boot
 #BOARD ?= stmp378x_dev
 BOARD	= iMX28_EVK
 PWD	= $(shell pwd)
-CROSS_COMPILE = $(PWD)/../../../cross-toolchain/glibc/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-none-linux-gnueabi-
+CROSS_COMPILE ?= $(PWD)/../cross-toolchain/arm-fsl-linux-gnueabi/bin/arm-none-linux-gnueabi-
+export CROSS_COMPILE
 
 ifeq ($(BOARD), stmp37xx_dev)
 ARCH = 37xx
