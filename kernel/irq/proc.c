@@ -11,6 +11,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/interrupt.h>
+#include <linux/poll.h>
 
 #include "internals.h"
 
@@ -265,36 +266,185 @@ void register_handler_proc(unsigned int irq, struct irqaction *action)
 
 #define MAX_NAMELEN 10
 
+struct irq_proc {
+	unsigned long irq;
+	wait_queue_head_t q;
+	atomic_t count;
+	char devname[TASK_COMM_LEN];
+};
+
+static irqreturn_t irq_proc_irq_handler(int irq, void *vidp)
+{
+	struct irq_proc *idp = (struct irq_proc *)vidp;
+	//unsigned long stamp;
+
+	BUG_ON(idp->irq != irq);
+
+	disable_irq_nosync(irq);
+	atomic_inc(&idp->count);
+
+	wake_up(&idp->q);
+	return IRQ_HANDLED;
+}
+
+
+/*
+* Signal to userspace an interrupt has occured.
+*/
+static ssize_t irq_proc_read(struct file *filp, char  __user *bufp, size_t len, loff_t *ppos)
+{
+	struct irq_proc *ip = (struct irq_proc *)filp->private_data;
+	struct irq_desc *idp = irq_desc + ip->irq;
+	int pending;
+
+	DEFINE_WAIT(wait);
+
+	if (len < sizeof(int))
+	  return -EINVAL;
+
+	pending = atomic_read(&ip->count);
+	if (pending == 0) {
+		if (idp->status & IRQ_DISABLED)
+		  enable_irq(ip->irq);
+		if (filp->f_flags & O_NONBLOCK)
+		  return -EWOULDBLOCK;
+	}
+
+	while (pending == 0) {
+		prepare_to_wait(&ip->q, &wait, TASK_INTERRUPTIBLE);
+		pending = atomic_read(&ip->count);
+		if (pending == 0)
+		schedule();
+		finish_wait(&ip->q, &wait);
+		if (signal_pending(current))
+		return -ERESTARTSYS;
+	}
+
+	if (copy_to_user(bufp, &pending, sizeof pending))
+	  return -EFAULT;
+
+	*ppos += sizeof pending;
+
+	atomic_sub(pending, &ip->count);
+	return sizeof pending;
+}
+
+
+static int irq_proc_open(struct inode *inop, struct file *filp)
+{
+	struct irq_proc *ip;
+	struct proc_dir_entry *ent = PDE(inop);
+	int error;
+
+	ip = kmalloc(sizeof *ip, GFP_KERNEL);
+	if (ip == NULL)
+	  return -ENOMEM;
+
+	memset(ip, 0, sizeof(*ip));
+	strcpy(ip->devname, current->comm);
+	init_waitqueue_head(&ip->q);
+	atomic_set(&ip->count, 0);
+	ip->irq = (unsigned long)ent->data;
+
+	error = request_irq(ip->irq,
+	  irq_proc_irq_handler,
+	  0,
+	  ip->devname,
+	  ip);
+	if (error < 0) {
+		kfree(ip);
+		return error;
+	}
+	filp->private_data = (void *)ip;
+
+	return 0;
+}
+
+static int irq_proc_release(struct inode *inop, struct file *filp)
+{
+	struct irq_proc *ip = (struct irq_proc *)filp->private_data;
+
+	free_irq(ip->irq, ip);
+	filp->private_data = NULL;
+	kfree(ip);
+	return 0;
+}
+
+static unsigned int irq_proc_poll(struct file *filp, struct poll_table_struct *wait)
+{
+	struct irq_proc *ip = (struct irq_proc *)filp->private_data;
+	struct irq_desc *idp = irq_desc + ip->irq;
+
+	if (atomic_read(&ip->count) > 0)
+	return POLLIN | POLLRDNORM; /* readable */
+
+	/* if interrupts disabled and we don't have one to process... */
+	if (idp->status & IRQ_DISABLED)
+	enable_irq(ip->irq);
+
+	poll_wait(filp, &ip->q, wait);
+
+	if (atomic_read(&ip->count) > 0)
+	return POLLIN | POLLRDNORM; /* readable */
+
+	return 0;
+}
+
+static struct file_operations irq_proc_file_operations = {
+	.read = irq_proc_read,
+	.open = irq_proc_open,
+	.release = irq_proc_release,
+	.poll = irq_proc_poll,
+};
+
+
+
+
 void register_irq_proc(unsigned int irq, struct irq_desc *desc)
 {
+	struct proc_dir_entry *entry;
 	char name [MAX_NAMELEN];
 
-	if (!root_irq_dir || (desc->chip == &no_irq_chip) || desc->dir)
+	if (!root_irq_dir) // || (desc->chip == &no_irq_chip) || desc->dir)
 		return;
+	if(irq == 32) return;
 
 	memset(name, 0, MAX_NAMELEN);
 	sprintf(name, "%d", irq);
 
 	/* create /proc/irq/1234 */
-	desc->dir = proc_mkdir(name, root_irq_dir);
-	if (!desc->dir)
-		return;
+	//desc->dir = proc_mkdir(name, root_irq_dir);
+	//if (!desc->dir)
+	//	return;
+	if (!desc->dir) {
+		/* create /proc/irq/1234 */
+		desc->dir = proc_mkdir(name, root_irq_dir);
+		//printk("%s\n", name, root_irq_dir, desc->dir);
+		
+
+		/*
+		* Create handles for user-mode interrupt handlers
+		* if the kernel hasn't already grabbed the IRQ
+		*/
+		proc_create_data("irq", 0600, desc->dir,
+		  &irq_proc_file_operations, (void *)(long)irq);
 
 #ifdef CONFIG_SMP
-	/* create /proc/irq/<irq>/smp_affinity */
-	proc_create_data("smp_affinity", 0600, desc->dir,
-			 &irq_affinity_proc_fops, (void *)(long)irq);
-
-	/* create /proc/irq/<irq>/affinity_hint */
-	proc_create_data("affinity_hint", 0400, desc->dir,
-			 &irq_affinity_hint_proc_fops, (void *)(long)irq);
-
-	proc_create_data("node", 0444, desc->dir,
-			 &irq_node_proc_fops, (void *)(long)irq);
+		/* create /proc/irq/<irq>/smp_affinity */
+		proc_create_data("smp_affinity", 0600, desc->dir,
+				 &irq_affinity_proc_fops, (void *)(long)irq);
+	
+		/* create /proc/irq/<irq>/affinity_hint */
+		proc_create_data("affinity_hint", 0400, desc->dir,
+				 &irq_affinity_hint_proc_fops, (void *)(long)irq);
+	
+		proc_create_data("node", 0444, desc->dir,
+				 &irq_node_proc_fops, (void *)(long)irq);
 #endif
 
-	proc_create_data("spurious", 0444, desc->dir,
-			 &irq_spurious_proc_fops, (void *)(long)irq);
+		proc_create_data("spurious", 0444, desc->dir,
+				 &irq_spurious_proc_fops, (void *)(long)irq);
+	}
 }
 
 #undef MAX_NAMELEN

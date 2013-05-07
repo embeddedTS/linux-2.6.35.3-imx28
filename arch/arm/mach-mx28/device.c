@@ -37,6 +37,7 @@
 #include <mach/system.h>
 #include <mach/hardware.h>
 #include <mach/regs-pwm.h>
+#include <mach/regs-pinctrl.h>
 #include <mach/regs-timrot.h>
 #include <mach/regs-lradc.h>
 #include <mach/regs-ocotp.h>
@@ -442,6 +443,28 @@ static void mx28_init_fpgaclk(void)
 		REGS_PWM_BASE + HW_PWM_PERIODn(2));
 	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
 }
+
+#define INT0		MXS_PIN_TO_GPIO(PINID_GPMI_CLE)
+#define INT1		MXS_PIN_TO_GPIO(PINID_GPMI_CE1N)
+#define	INT2		MXS_PIN_TO_GPIO(PINID_AUART1_RX)
+static void mx28_init_fpga_irq(void)
+{
+	gpio_request(INT0, "int0");
+	printk("INT0 registered as IRQ %d\n", gpio_to_irq(INT0));
+	gpio_request(INT0, "int1");
+	printk("INT1 registered as IRQ %d\n", gpio_to_irq(INT1));
+	__raw_writel(((1 << 27) | (1 << 17)),
+	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL0_SET);
+	__raw_writel(((1 << 27) | (1 << 17)),
+	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL0_SET);
+	gpio_request(INT0, "int2");
+	printk("INT2 registered as IRQ %d\n", gpio_to_irq(INT2));
+	__raw_writel((1 << 4),
+	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL3_SET);
+	__raw_writel((1 << 4),
+	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL3_SET);
+}
+	
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_TS7600)
@@ -1749,6 +1772,7 @@ int __init mx28_device_init(void)
 	mx28_init_persistent();
 	mx28_init_perfmon();
 	mx28_init_otp();
+	mx28_init_fpga_irq();
 	return 0;
 }
 
