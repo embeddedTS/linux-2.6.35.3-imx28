@@ -568,6 +568,40 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull 		= 0,
 	 },*/
 #endif
+	{
+	 .name	= "SSP0_DETECT",
+	 .id	        = PINID_SSP0_DETECT,
+	 .fun	        = PIN_GPIO,
+	 .strength	= PAD_8MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name = "INT0",
+	 .id            = PINID_GPMI_CLE,
+	 .fun           = PIN_GPIO,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .drive         = 1,
+	 },
+	{
+	 .name = "INT1",
+	 .id            = PINID_GPMI_CE1N,
+	 .fun           = PIN_GPIO,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .drive         = 1,
+	 },
+	{
+	 .name = "INT2",
+	 .id            = PINID_AUART1_RX,
+	 .fun           = PIN_GPIO,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .drive         = 1,
+	 },
 #if defined(CONFIG_LEDS_MXS) || defined(CONFIG_LEDS_MXS_MODULE)
 	{
 	 .name = "LEDS_PWM0",
@@ -1028,7 +1062,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .pullup   = 0,
 	 .drive    = !0
 	 },
-	{
+	/*{
 	 .name     = "GPMI CE1-",
 	 .id       = PINID_GPMI_CE1N,
 	 .fun      = PIN_FUN1,
@@ -1036,11 +1070,11 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
 	 .drive    = !0
-	 },
+	 },*/
 	/*{
 	 .name     = "GPMI RDY0",
 	 .id       = PINID_GPMI_RDY0,
-	 .fun      = PIN_FUN1,
+	 .fun      = PIN_FUN3,
 	 .strength = PAD_4MA,
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
@@ -1082,7 +1116,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .pullup   = 0,
 	 .drive    = !0
 	 },
-	{
+	/*{
 	 .name     = "GPMI CLE",
 	 .id       = PINID_GPMI_CLE,
 	 .fun      = PIN_FUN1,
@@ -1090,7 +1124,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
 	 .drive    = !0
-	 },
+	 },*/
 	{
 	 .name     = "GPMI RST-",
 	 .id       = PINID_GPMI_RESETN,
