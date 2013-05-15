@@ -20,6 +20,7 @@
 #include <linux/init.h>
 #include <linux/io.h>
 #include <linux/err.h>
+#include <linux/module.h>
 
 #include <asm/proc-fns.h>
 
@@ -49,8 +50,8 @@ void arch_reset(char mode, const char *cmd)
 
 static int __mxs_reset_block(void __iomem *hwreg, int just_enable)
 {
-	u32 c;
-	int timeout;
+	volatile u32 c;
+	volatile int timeout;
 
 	/* the process of software reset of IP block is done
 	   in several steps:
@@ -135,3 +136,4 @@ int mxs_reset_block(void __iomem *hwreg, int just_enable)
 	}
 	return r;
 }
+EXPORT_SYMBOL(mxs_reset_block);
