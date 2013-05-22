@@ -450,15 +450,12 @@ static void mx28_init_fpgaclk(void)
 static void mx28_init_fpga_irq(void)
 {
 	gpio_request(INT0, "int0");
-	printk("INT0 registered as IRQ %d\n", gpio_to_irq(INT0));
-	gpio_request(INT0, "int1");
-	printk("INT1 registered as IRQ %d\n", gpio_to_irq(INT1));
+	gpio_request(INT1, "int1");
 	__raw_writel(((1 << 27) | (1 << 17)),
 	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL0_SET);
 	__raw_writel(((1 << 27) | (1 << 17)),
 	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL0_SET);
-	gpio_request(INT0, "int2");
-	printk("INT2 registered as IRQ %d\n", gpio_to_irq(INT2));
+	gpio_request(INT2, "int2");
 	__raw_writel((1 << 4),
 	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL3_SET);
 	__raw_writel((1 << 4),
