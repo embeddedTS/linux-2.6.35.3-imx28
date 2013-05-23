@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Wed May 22 13:06:08 2013
+# Wed May 22 17:12:36 2013
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1372,8 +1372,33 @@ CONFIG_MMC_BLOCK_BOUNCE=y
 CONFIG_MMC_MXS=y
 # CONFIG_MEMSTICK is not set
 CONFIG_NEW_LEDS=y
-# CONFIG_LEDS_CLASS is not set
+CONFIG_LEDS_CLASS=m
+
+#
+# LED drivers
+#
+# CONFIG_LEDS_MXS is not set
+# CONFIG_LEDS_PCA9532 is not set
+# CONFIG_LEDS_GPIO is not set
+# CONFIG_LEDS_LP3944 is not set
+# CONFIG_LEDS_PCA955X is not set
+# CONFIG_LEDS_REGULATOR is not set
+# CONFIG_LEDS_BD2802 is not set
+# CONFIG_LEDS_LT3593 is not set
 CONFIG_LEDS_TRIGGERS=y
+
+#
+# LED Triggers
+#
+# CONFIG_LEDS_TRIGGER_TIMER is not set
+# CONFIG_LEDS_TRIGGER_HEARTBEAT is not set
+# CONFIG_LEDS_TRIGGER_BACKLIGHT is not set
+# CONFIG_LEDS_TRIGGER_GPIO is not set
+# CONFIG_LEDS_TRIGGER_DEFAULT_ON is not set
+
+#
+# iptables trigger is under Netfilter config (LED target)
+#
 # CONFIG_ACCESSIBILITY is not set
 CONFIG_RTC_LIB=y
 # CONFIG_RTC_CLASS is not set
