@@ -20,7 +20,7 @@ ifeq ($(BOARD), iMX28_EVK)
 ARCH = mx28
 endif
 
-all: build_prep gen_bootstream
+all: build_prep gen_bootstream gen_ts_spi
 
 build_prep:
 
@@ -63,6 +63,10 @@ endif
 # TODO
 #	@echo "generating uuc boot stream image"
 
+gen_ts_spi:
+	@echo "build image for TS SPI chip"
+	./spi-build imx28_ivt_linux.sb imx28_ivt_linux.spi
+
 power_prep:
 	@echo "build power_prep"
 	$(MAKE) -C power_prep ARCH=$(ARCH) BOARD=$(BOARD)
@@ -103,6 +107,7 @@ install:
 distclean: clean
 clean:
 	-rm -rf *.sb
+	-rm -rf *.spi
 	rm -f sd_mmc_bootstream.raw
 	$(MAKE) -C linux_prep clean ARCH=$(ARCH)
 	$(MAKE) -C boot_prep clean ARCH=$(ARCH)
