@@ -718,9 +718,6 @@ static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 	struct fec_enet_private *fep = bus->priv;
 	unsigned long time_left;
 
-	fep->mii_timeout = 0;
-	init_completion(&fep->mdio_done);
-
 	/* This is required to force the driver to think that the non-existant
 	 * PHY has link, only when boards use the Marvell switch
 	 */
@@ -733,6 +730,10 @@ static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 		}
 		hasphy = 0;
 	}
+
+	fep->mii_timeout = 0;
+	init_completion(&fep->mdio_done);
+
 	/* start a read op */
 	writel(FEC_MMFR_ST | FEC_MMFR_OP_READ |
 		FEC_MMFR_PA(mii_id) | FEC_MMFR_RA(regnum) |
