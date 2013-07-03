@@ -919,7 +919,7 @@ static int emi_set_rate(struct clk *clk, unsigned long rate)
 		emi.emi_div = 3; /* 130MHz */
 		emi.frac_div = 22; /* 392Mhz */
 		emi.new_freq = 133;
-		DDR2EmiController_EDE1116_133MHz();
+		DDR2EmiController_EDE1116_200MHz();
 	} else if (rate <= 166000000) {
 		emi.emi_div = 2; /* 160Mhz */
 		emi.frac_div = 27; /* 320Mhz */
