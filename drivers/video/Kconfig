@@ -2132,6 +2132,21 @@ config FB_VIRTUAL
 
 	  If unsure, say N.
 
+config FB_ST7565P
+   tristate "ST7565P Virtual Frame Buffer support"
+	depends on FB
+	select FB_SYS_FILLRECT
+	select FB_SYS_COPYAREA
+	select FB_SYS_IMAGEBLIT
+	select FB_SYS_FOPS
+	---help---
+	  This is a `virtual' frame buffer device specifically for the
+	  ST7565P LCD display device when attached to a 
+	  Technologic Systems TS-8290 board.
+	  
+	  This driver also requires a userspace program ("lcd-helper") to communicate 
+	  with the ST7565P via SPI.	  
+	  
 config XEN_FBDEV_FRONTEND
 	tristate "Xen virtual frame buffer support"
 	depends on FB && XEN
