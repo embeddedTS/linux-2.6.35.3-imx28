@@ -6,6 +6,7 @@ obj-y += pinctrl.o clock.o device.o serial.o power.o bus_freq.o pm.o sleep.o
 # Board select
 obj-$(CONFIG_MACH_MX28EVK) += mx28evk.o mx28evk_pins.o
 obj-$(CONFIG_MACH_TS7600) += ts7600.o ts7600_pins.o
+obj-$(CONFIG_MACH_TS7400) += ts7400.o ts7400_pins.o
 obj-$(CONFIG_GENERIC_GPIO) += gpio.o
 obj-$(CONFIG_MXS_RAM_FREQ_SCALING) +=emi.o emi_settings.o
 

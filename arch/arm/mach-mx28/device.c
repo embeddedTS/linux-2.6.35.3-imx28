@@ -427,6 +427,7 @@ static void mx28_init_gpmi_nfc(void)
 }
 #endif
 
+#if defined(CONFIG_MACH_TS7600)
 static void mx28_init_fpgaclk(void) 
 {
 	struct clk *pwm_clk = clk_get(NULL, "pwm");
@@ -461,19 +462,31 @@ static void mx28_init_fpga_irq(void)
 	__raw_writel((1 << 4),
 	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL3_SET);
 }
+#else
+static void mx28_init_fpgaclk(void) 
+{
+}
+static void mx28_init_fpga_irq(void)
+{
+}
+#endif
 	
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
-#if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_TS7600)
 #define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
 #define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
+
+#if defined(CONFIG_MACH_MX28EVK)
+#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
+#else
+#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #endif
+
 
 static int mxs_mmc_get_wp_ssp0(void)
 {
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	return gpio_get_value(MMC0_WP);
 #endif 
 	return 0;
@@ -483,7 +496,7 @@ static int mxs_mmc_hw_init_ssp0(void)
 {
 	int ret = 0;
 
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC0_WP, "mmc0_wp");
 	if (ret)
@@ -491,12 +504,12 @@ static int mxs_mmc_hw_init_ssp0(void)
 
 	gpio_set_value(MMC0_WP, 0);
 	gpio_direction_input(MMC0_WP);
-#endif
 	/* Configure POWER pin as gpio to drive power to MMC slot */
-/*	ret = gpio_request(MMC0_POWER, "mmc0_power");
+	ret = gpio_request(MMC0_POWER, "mmc0_power");
 	if (ret)
 		goto out_power;
-*/
+
+#endif
 
 	gpio_direction_output(MMC0_POWER, 0);
 	mdelay(100);
@@ -504,7 +517,7 @@ static int mxs_mmc_hw_init_ssp0(void)
 	return 0;
 
 out_power:
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	gpio_free(MMC0_WP);
 #endif
 out_wp:
@@ -513,7 +526,7 @@ out_wp:
 
 static void mxs_mmc_hw_release_ssp0(void)
 {
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	gpio_free(MMC0_POWER);
 	gpio_free(MMC0_WP);
 #endif
@@ -544,7 +557,7 @@ static unsigned long mxs_mmc_setclock_ssp0(unsigned long hz)
 
 static int mxs_mmc_get_wp_ssp2(void)
 {
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	return gpio_get_value(MMC1_WP);
 #endif
 	return 0;
@@ -554,7 +567,7 @@ static int mxs_mmc_hw_init_ssp2(void)
 {
 	int ret = 0;
 
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC1_WP, "mmc1_wp");
 	if (ret)
@@ -562,14 +575,14 @@ static int mxs_mmc_hw_init_ssp2(void)
 
 	gpio_set_value(MMC1_WP, 0);
 	gpio_direction_input(MMC1_WP);
-#endif
 
 	/* Configure POWER pin as gpio to drive power to MMC slot */
-/*
+
 	ret = gpio_request(MMC1_POWER, "mmc1_power");
 	if (ret)
 		goto out_power;
-*/
+
+#endif
 
 	gpio_direction_output(MMC1_POWER, 0);
 	mdelay(100);
@@ -577,7 +590,7 @@ static int mxs_mmc_hw_init_ssp2(void)
 	return 0;
 
 out_power:
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	gpio_free(MMC1_WP);
 #endif
 out_wp:
@@ -586,7 +599,7 @@ out_wp:
 
 static void mxs_mmc_hw_release_ssp2(void)
 {
-#if 0
+#if defined(CONFIG_MACH_MX28EVK)
 	gpio_free(MMC1_POWER);
 	gpio_free(MMC1_WP);
 #endif
@@ -614,6 +627,23 @@ static unsigned long mxs_mmc_setclock_ssp2(unsigned long hz)
 	return hz;
 }
 
+static unsigned long mxs_mmc_setclock_ssp1(unsigned long hz)
+{
+	struct clk *ssp = clk_get(NULL, "ssp.1"), *parent;
+
+	if (hz > 1000000)
+		parent = clk_get(NULL, "ref_io.0");
+	else
+		parent = clk_get(NULL, "xtal.0");
+
+	clk_set_parent(ssp, parent);
+	clk_set_rate(ssp, 2 * hz);
+	clk_put(parent);
+	clk_put(ssp);
+
+	return hz;
+}
+
 static struct mxs_mmc_platform_data mmc0_data = {
 	.hw_init	= mxs_mmc_hw_init_ssp0,
 	.hw_release	= mxs_mmc_hw_release_ssp0,
@@ -628,6 +658,7 @@ static struct mxs_mmc_platform_data mmc0_data = {
 	.write_uA       = 70000,
 	.clock_mmc = "ssp.0",
 	.power_mmc = NULL,
+	.fastpath_sz = 1024,
 };
 
 static struct resource mmc0_resource[] = {
@@ -658,7 +689,11 @@ static struct mxs_mmc_platform_data mmc1_data = {
 	.hw_release	= mxs_mmc_hw_release_ssp2,
 	.get_wp		= mxs_mmc_get_wp_ssp2,
 	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp2,
+#if defined(CONFIG_MACH_MX28EVK)
+	.setclock	= mxs_mmc_setclock_ssp1,
+#else
 	.setclock	= mxs_mmc_setclock_ssp2,
+#endif
 	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
 				| MMC_CAP_DATA_DDR,
 	.min_clk	= 400000,
@@ -667,6 +702,7 @@ static struct mxs_mmc_platform_data mmc1_data = {
 	.write_uA       = 70000,
 	.clock_mmc = "ssp.2",
 	.power_mmc = NULL,
+	.fastpath_sz = 1024,
 };
 
 static struct resource mmc1_resource[] = {
@@ -692,48 +728,6 @@ static struct resource mmc1_resource[] = {
 	},
 };
 
-#if 0
-static struct mxs_mmc_platform_data mmc1_data = {
-	.hw_init	= mxs_mmc_hw_init_ssp1,
-	.hw_release	= mxs_mmc_hw_release_ssp1,
-	.get_wp		= mxs_mmc_get_wp_ssp1,
-	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp1,
-	.setclock	= mxs_mmc_setclock_ssp1,
-	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
-				| MMC_CAP_DATA_DDR,
-	.min_clk	= 400000,
-	.max_clk	= 48000000,
-	.read_uA        = 50000,
-	.write_uA       = 70000,
-	.clock_mmc = "ssp.1",
-	.power_mmc = NULL,
-	.fastpath_sz = 1024,
-};
-
-static struct resource mmc1_resource[] = {
-	{
-		.flags	= IORESOURCE_MEM,
-		.start	= SSP1_PHYS_ADDR,
-		.end	= SSP1_PHYS_ADDR + 0x2000 - 1,
-	},
-	{
-		.flags	= IORESOURCE_DMA,
-		.start	= MXS_DMA_CHANNEL_AHB_APBH_SSP1,
-		.end	= MXS_DMA_CHANNEL_AHB_APBH_SSP1,
-	},
-	{
-		.flags	= IORESOURCE_IRQ,
-		.start	= IRQ_SSP1_DMA,
-		.end	= IRQ_SSP1_DMA,
-	},
-	{
-		.flags	= IORESOURCE_IRQ,
-		.start	= IRQ_SSP1,
-		.end	= IRQ_SSP1,
-	},
-};
-#endif
-
 static void __init mx28_init_mmc(void)
 {
 	struct platform_device *pdev;
@@ -748,7 +742,11 @@ static void __init mx28_init_mmc(void)
 		mxs_add_device(pdev, 2);
 	}
 
+#if defined(CONFIG_MACH_MXS28EVK)
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
+#else
 	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+#endif
 		pdev = mxs_get_device("mxs-mmc", 1);
 		if (pdev == NULL || IS_ERR(pdev))
 			return;
@@ -764,8 +762,8 @@ static void mx28_init_mmc(void)
 }
 #endif
 
-#if 0
-//#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
+#if (defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)) &&\
+  defined(CONFIG_MACH_MX28EVK)
 static struct mxs_spi_platform_data spi_data = {
 	.clk = "ssp.2",
 };
@@ -925,7 +923,37 @@ static void __init mx28_init_fec(void)
 	lookup = mxs_get_devices("mxs-fec"); 
 	if (lookup == NULL || IS_ERR(lookup))
 		return;                      
+#if defined(CONFIG_MACH_MX28EVK)
+	for (i = 0; i < lookup->size; i++) {
+		pdev = lookup->pdev + i;
+		val =  __raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) +
+		  HW_OCOTP_CUSTn(pdev->id));
+		switch (pdev->id) {
+		  case 0:
+			pdev->resource = fec0_resource;
+			pdev->num_resources = ARRAY_SIZE(fec0_resource);
+			pdev->dev.platform_data = &fec_pdata0;
+			break;
+		  case 1:
+			pdev->resource = fec1_resource;
+			pdev->num_resources = ARRAY_SIZE(fec1_resource);
+			pdev->dev.platform_data = &fec_pdata1;
+			break;
+		  default:
+			return;
+		}
 
+		pfec = (struct fec_platform_data *)pdev->dev.platform_data;
+		pfec->mac[0] = 0x00;
+		pfec->mac[1] = 0x04;
+		pfec->mac[2] = (val >> 24) & 0xFF;
+		pfec->mac[3] = (val >> 16) & 0xFF;
+		pfec->mac[4] = (val >> 8) & 0xFF;
+		pfec->mac[5] = (val >> 0) & 0xFF;
+
+		mxs_add_device(pdev, 2);
+	}
+#else
 	pdev = lookup->pdev;
 	pdev->resource = fec0_resource;
 	pdev->num_resources = ARRAY_SIZE(fec0_resource);
@@ -949,8 +977,9 @@ static void __init mx28_init_fec(void)
 	while (BM_OCOTP_CTRL_BUSY &
 		__raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL))
 		udelay(10);
-	
 	mxs_add_device(pdev, 2);
+#endif
+	
 }
 #else
 static void __init mx28_init_fec(void)
@@ -1305,10 +1334,10 @@ static ddi_bc_Cfg_t battery_data = {
 	.u16DieTempSafeCurrent		 = 0,		/* mA */
 	.u8DieTempChannel		 = 0,		/* LRADC 0 */
 	.monitorBatteryTemp		 = 0,		/* Monitor the battery*/
-  /* There is no free LRADC channel for battery monitor.
-     LRADC 1  is also used for kbd, if LRADC_CH1 is used
-     for battery temperature. kbd device should be disabled */
-  .u8BatteryTempChannel = LRADC_CH1,
+	/* There is no free LRADC channel for battery monitor.
+	   LRADC 1  is also used for kbd, if LRADC_CH1 is used
+	   for battery temperature. kbd device should be disabled */
+	.u8BatteryTempChannel		 = LRADC_CH1,
 	.u16BatteryTempHigh		 = 642,		/* Unknown units */
 	.u16BatteryTempLow		 = 497,		/* Unknown units */
 	.u16BatteryTempSafeCurrent	 = 0,		/* mA */
@@ -1456,12 +1485,12 @@ static int audio_clk_init(void)
 	clk_enable(saif_mclk0);
 	clk_enable(saif_mclk1);
 
-  clk_put(clk);
-  clk_put(pll_clk);
-  clk_put(saif_mclk0);
-  clk_put(saif_mclk1);
+	clk_put(clk);
+	clk_put(pll_clk);
+	clk_put(saif_mclk0);
+	clk_put(saif_mclk1);
 
-  audio_plat_data.inited = 1;
+	audio_plat_data.inited = 1;
 
 err_clk_init:
 	return ret;
@@ -1483,7 +1512,7 @@ static int audio_clk_finit(void)
 		goto err_clk_finit;
 	}
 	clk_disable(saif_clk);
-  clk_put(saif_clk);
+	clk_put(saif_clk);
 
 	saif_mclk0 = clk_get(NULL, "saif_mclk.0");
 	if (IS_ERR(saif_mclk0)) {
@@ -1491,7 +1520,7 @@ static int audio_clk_finit(void)
 		goto err_clk_finit;
 	}
 	clk_disable(saif_mclk0);
-  clk_put(saif_mclk0);
+	clk_put(saif_mclk0);
 
 	saif_mclk1 = clk_get(NULL, "saif_mclk.1");
 	if (IS_ERR(saif_mclk1)) {
@@ -1499,9 +1528,9 @@ static int audio_clk_finit(void)
 		goto err_clk_finit;
 	}
 	clk_disable(saif_mclk1);
-  clk_put(saif_mclk1);
+	clk_put(saif_mclk1);
 
-  audio_plat_data.inited = 0;
+	audio_plat_data.inited = 0;
 
 err_clk_finit:
 	return ret;
