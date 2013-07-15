@@ -257,6 +257,18 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .drive 	= 1,
 	 .pull 		= 1,
 	 },
+	/* USB power */
+	{
+	 .name	= "LCD_EN",
+	 .id	        = PINID_LCD_CS,
+	 .fun	        = PIN_GPIO,
+	 .strength	= PAD_8MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 .drive		= 1,
+	 },
 	/*{
 	 .name = "INT0",
 	 .id            = PINID_GPMI_CLE,
