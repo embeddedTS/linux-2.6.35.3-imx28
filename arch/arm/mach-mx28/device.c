@@ -427,7 +427,8 @@ static void mx28_init_gpmi_nfc(void)
 }
 #endif
 
-#if defined(CONFIG_MACH_TS7600)
+
+#if !defined(CONFIG_MACH_MX28EVK)
 static void mx28_init_fpgaclk(void) 
 {
 	struct clk *pwm_clk = clk_get(NULL, "pwm");
@@ -444,7 +445,13 @@ static void mx28_init_fpgaclk(void)
 		REGS_PWM_BASE + HW_PWM_PERIODn(2));
 	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
 }
+#else
+static void mx28_init_fpgaclk(void) 
+{
+}
+#endif
 
+#if defined(CONFIG_MACH_TS7600)
 #define INT0		MXS_PIN_TO_GPIO(PINID_GPMI_CLE)
 #define INT1		MXS_PIN_TO_GPIO(PINID_GPMI_CE1N)
 #define	INT2		MXS_PIN_TO_GPIO(PINID_AUART1_RX)
@@ -463,9 +470,6 @@ static void mx28_init_fpga_irq(void)
 	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL3_SET);
 }
 #else
-static void mx28_init_fpgaclk(void) 
-{
-}
 static void mx28_init_fpga_irq(void)
 {
 }
@@ -742,6 +746,7 @@ static void __init mx28_init_mmc(void)
 		mxs_add_device(pdev, 2);
 	}
 
+#if !defined(CONFIG_MACH_TS7400)
 #if defined(CONFIG_MACH_MXS28EVK)
 	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
 #else
@@ -755,7 +760,9 @@ static void __init mx28_init_mmc(void)
 		pdev->dev.platform_data = &mmc1_data;
 		mxs_add_device(pdev, 2);
 	}
+#endif
 }
+
 #else
 static void mx28_init_mmc(void)
 {
@@ -763,7 +770,7 @@ static void mx28_init_mmc(void)
 #endif
 
 #if (defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)) &&\
-  defined(CONFIG_MACH_MX28EVK)
+  defined(CONFIG_MACH_TS7400)
 static struct mxs_spi_platform_data spi_data = {
 	.clk = "ssp.2",
 };
