@@ -58,14 +58,15 @@ static struct flash_platform_data mx28_spi_flash_data = {
 #endif
 
 static struct spi_board_info spi_board_info[] __initdata = {
-#if defined(CONFIG_MTD_M25P80) || defined(CONFIG_MTD_M25P80_MODULE)
+#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
 	{
 		/* the modalias must be the same as spi device driver name */
-		.modalias = "m25p80", /* Name of spi_driver for this device */
+		.modalias = "spidev", /* Name of spi_driver for this device */
 		.max_speed_hz = 20000000,     /* max spi clock (SCK) speed in HZ */
 		.bus_num = 1, /* Framework bus number */
 		.chip_select = 0, /* Framework chip select. */
-		.platform_data = &mx28_spi_flash_data,
+		.mode = SPI_MODE_0,
+		//.platform_data = &mx28_spi_flash_data,
 	},
 #endif
 };
