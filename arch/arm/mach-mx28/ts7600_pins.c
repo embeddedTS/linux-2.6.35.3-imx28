@@ -420,14 +420,6 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 },
 	{
 	 .name = "LCD_BACKLIGHT",
-	 .id = PINID_PWM2,
-	 .fun = PIN_FUN1,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name = "FPGA_CLK",
 	 .id = PINID_PWM4,
 	 .fun = PIN_FUN1,
 	 .strength = PAD_8MA,
@@ -569,6 +561,14 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 },*/
 #endif
 	{
+	 .name = "FPGA_CLK",
+	 .id = PINID_PWM2,
+	 .fun = PIN_FUN1,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 },
+	{
 	 .name	= "SSP0_DETECT",
 	 .id	        = PINID_SSP0_DETECT,
 	 .fun	        = PIN_GPIO,
@@ -577,6 +577,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pullup	= 1,
 	 .drive 	= 1,
 	 .pull 		= 1,
+	 .data		= 0,
 	 },
 	{
 	 .name = "INT0",
@@ -1191,7 +1192,8 @@ int mx28evk_enet_gpio_init(void)
 	 * So change delay to 50ms after timer issue fix.
 	 */
 	mdelay(1);
-	gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT));
+	//gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT));
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 	/* Most a reset should last from switch chip is 14ms */
 	mdelay(15);
 
