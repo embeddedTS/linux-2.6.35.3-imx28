@@ -1545,6 +1545,29 @@ err_clk_finit:
 
 #endif
 
+#if defined(CONFIG_MACH_TS7600)
+int ts7600_init_audio_device(const char *dev)
+{   
+   struct platform_device *pdev = mxs_get_device((char*)dev, 0);   
+   if (pdev) {       
+      mxs_add_device(pdev, 3);     
+      pdev->dev.platform_data = &audio_plat_data;
+      return 0;   
+   }
+   printk("Failed to find device %s\n", dev);
+   return -EINVAL;
+}
+EXPORT_SYMBOL(ts7600_init_audio_device);
+
+void __init mx28_init_audio(void)
+{
+    audio_plat_data.inited = 0;
+    audio_plat_data.saif_mclock = clk_get(NULL, "saif.0");
+    audio_plat_data.init = audio_clk_init;
+    audio_plat_data.finit = audio_clk_finit;
+    audio_clk_init();
+}
+#else
 #if defined(CONFIG_SND_SOC_SGTL5000) || defined(CONFIG_SND_SOC_SGTL5000_MODULE)
 void __init mx28_init_audio(void)
 {	struct platform_device *pdev;
@@ -1566,6 +1589,7 @@ void __init mx28_init_audio(void)
 {
 }
 #endif
+#endif
 
 #if defined(CONFIG_SND_SOC_MXS_SPDIF) || \
        defined(CONFIG_SND_SOC_MXS_SPDIF_MODULE)
@@ -1577,7 +1601,7 @@ void __init mx28_init_spdif(void)
 	mxs_add_device(pdev, 3);
 }
 #else
-static inline mx28_init_spdif(void)
+static inline void mx28_init_spdif(void)
 {
 }
 #endif
@@ -1683,7 +1707,7 @@ static void mx28_init_persistent(void)
 	mxs_add_device(pdev, 3);
 }
 #else
-static void mx28_init_persistent()
+static void mx28_init_persistent(void)
 {
 }
 #endif
@@ -1726,7 +1750,7 @@ static void mx28_init_perfmon(void)
 
 #else
 
-static void mx28_init_perfmon()
+static void mx28_init_perfmon(void)
 {
 }
 

@@ -435,6 +435,21 @@ static struct platform_device mxs_sgtl5000[] = {
 };
 #endif
 
+
+#if defined(CONFIG_SND_SOC_WM8750) || \
+	defined(CONFIG_SND_SOC_WM8750_MODULE)
+static struct platform_device mxs_wm8750[] = {
+	{
+	.name = "mxs-wm8750",
+	.id = 0,
+	.dev =	{
+		.release = mxs_nop_release,
+		},
+	},
+};
+#endif
+
+
 #if defined(CONFIG_MXS_VIIM) || defined(CONFIG_MXS_VIIM_MODULE)
 struct platform_device mxs_viim = {
 	.name   = "mxs_viim",
@@ -726,6 +741,17 @@ static struct mxs_dev_lookup dev_lookup[] = {
 	.pdev = mxs_sgtl5000,
 	},
 #endif
+
+
+#if defined(CONFIG_SND_SOC_WM8750) || \
+	defined(CONFIG_SND_SOC_WM8750_MODULE)
+	{
+	.name = "mxs-wm8750",
+	.size = ARRAY_SIZE(mxs_wm8750),
+	.pdev = mxs_wm8750,
+	},
+#endif
+
 
 #if defined(CONFIG_SND_SOC_MXS_SPDIF) || \
 	defined(CONFIG_SND_SOC_MXS_SPDIF_MODULE)

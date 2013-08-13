@@ -41,6 +41,22 @@
 #include "mxs-dai.h"
 #include "mxs-pcm.h"
 #include "../codecs/sgtl5000.h"
+#include "../codecs/wm8750.h"
+
+
+enum {
+      CODEC_NONE,
+      CODEC_WM8750,
+      CODEC_SGTL5000,
+      CODEC_SII9022,
+      CODEC_LAST = CODEC_SII9022
+};
+
+static int usecodec;
+
+module_param(usecodec, int, CODEC_WM8750);
+MODULE_PARM_DESC(usecodec, "1=WM8750, 2=SGTL5000, 3=SII9022");
+
 
 struct mxs_evk_priv {
 	int sysclk;
@@ -62,7 +78,7 @@ static int mxs_evk_audio_hw_params(struct snd_pcm_substream *substream,
 	int ret = 0;
 
 	u32 dai_format;
-
+		
 	/* only need to do this once as capture and playback are sync */
 	if (priv->hw)
 		return 0;
@@ -108,7 +124,7 @@ static void mxs_evk_shutdown(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai_link *machine = rtd->dai;
 	struct snd_soc_dai *cpu_dai = machine->cpu_dai;
-
+	
 	if (cpu_dai->playback.active || cpu_dai->capture.active)
 		priv->hw = 1;
 	else
@@ -159,8 +175,8 @@ static const struct snd_soc_dapm_widget mxs_evk_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone Jack", NULL),
 };
 
-static int mxs_evk_sgtl5000_init(struct snd_soc_codec *codec)
-{
+static int mxs_evk_codec_init(struct snd_soc_codec *codec)
+{   
 	/* Add mxs_evk specific widgets */
 	snd_soc_dapm_new_controls(codec, mxs_evk_dapm_widgets,
 				  ARRAY_SIZE(mxs_evk_dapm_widgets));
@@ -175,10 +191,10 @@ static int mxs_evk_sgtl5000_init(struct snd_soc_codec *codec)
 
 /* mxs_evk digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link mxs_evk_dai = {
-	.name = "SGTL5000",
-	.stream_name = "SGTL5000",
-	.codec_dai = &sgtl5000_dai,
-	.init = mxs_evk_sgtl5000_init,
+	.name = "WM8750",
+	.stream_name = "WM8750",
+	.codec_dai = &wm8750_dai,
+	.init = mxs_evk_codec_init,
 	.ops = &mxs_evk_ops,
 };
 
@@ -195,6 +211,8 @@ static int mxs_evk_card_remove(struct platform_device *pdev)
 	return 0;
 }
 
+
+
 static struct snd_soc_card snd_soc_card_mxs_evk = {
 	.name = "mxs-evk",
 	.platform = &mxs_soc_platform,
@@ -203,16 +221,25 @@ static struct snd_soc_card snd_soc_card_mxs_evk = {
 	.remove = mxs_evk_card_remove,
 };
 
-static struct snd_soc_device mxs_evk_snd_devdata = {
+static struct snd_soc_device *mxs_evk_snd_devdata;
+
+static struct snd_soc_device mxs_evk_snd_sgtl5000_devdata = {
 	.card = &snd_soc_card_mxs_evk,
 	.codec_dev = &soc_codec_dev_sgtl5000,
 };
 
-static int __devinit mxs_evk_sgtl5000_probe(struct platform_device *pdev)
+
+static struct snd_soc_device mxs_evk_snd_wm8750_devdata = {
+	.card = &snd_soc_card_mxs_evk,
+	.codec_dev = &soc_codec_dev_wm8750,
+};
+
+static int __devinit mxs_evk_codec_probe(struct platform_device *pdev)
 {
 	struct mxs_audio_platform_data *plat = pdev->dev.platform_data;
 	struct mxs_saif *saif_select;
 	int ret = -EINVAL;
+	
 	if (plat->init && plat->init())
 		goto err_plat_init;
 	mxs_evk_dai.cpu_dai = &mxs_saif_dai[0];
@@ -224,10 +251,11 @@ static int __devinit mxs_evk_sgtl5000_probe(struct platform_device *pdev)
 err_plat_init:
 	if (plat->finit)
 		plat->finit();
+
 	return ret;
 }
 
-static int mxs_evk_sgtl5000_remove(struct platform_device *pdev)
+static int mxs_evk_codec_remove(struct platform_device *pdev)
 {
 	struct mxs_audio_platform_data *plat = pdev->dev.platform_data;
 
@@ -241,7 +269,7 @@ static int mxs_evk_sgtl5000_remove(struct platform_device *pdev)
 suspend_state_t mxs_pm_get_target(void);
 
 
-static int mxs_evk_sgtl5000_resume(struct platform_device *pdev)
+static int mxs_evk_codec_resume(struct platform_device *pdev)
 {
 	struct mxs_audio_platform_data *plat = pdev->dev.platform_data;
 
@@ -252,7 +280,7 @@ static int mxs_evk_sgtl5000_resume(struct platform_device *pdev)
 
 	return 0;
 }
-static int mxs_evk_sgtl5000_suspend(struct platform_device *pdev)
+static int mxs_evk_codec_suspend(struct platform_device *pdev)
 {
 	struct mxs_audio_platform_data *plat = pdev->dev.platform_data;
 
@@ -265,50 +293,101 @@ static int mxs_evk_sgtl5000_suspend(struct platform_device *pdev)
 }
 
 #else
-#define mxs_evk_sgtl5000_suspend NULL
-#define mxs_evk_sgtl5000_resume  NULL
+#define mxs_evk_codec_suspend NULL
+#define mxs_evk_codec_resume  NULL
 #endif
 
 
-static struct platform_driver mxs_evk_sgtl5000_audio_driver = {
-	.probe = mxs_evk_sgtl5000_probe,
-	.remove = mxs_evk_sgtl5000_remove,
-	.suspend = mxs_evk_sgtl5000_suspend,
-	.resume = mxs_evk_sgtl5000_resume,
+static struct platform_driver mxs_evk_codec_audio_driver = {
+	.probe = mxs_evk_codec_probe,
+	.remove = mxs_evk_codec_remove,
+	.suspend = mxs_evk_codec_suspend,
+	.resume = mxs_evk_codec_resume,
 
 	.driver = {
-		   .name = "mxs-sgtl5000",
+		   .name = "mxs-unknown",
 		   },
 };
 
 static struct platform_device *mxs_evk_snd_device;
 
+extern int ts7600_init_audio_device(const char *dev);
+
 static int __init mxs_evk_init(void)
 {
 	int ret;
 
-
-	ret = platform_driver_register(&mxs_evk_sgtl5000_audio_driver);
+	if (usecodec == CODEC_NONE)
+	   usecodec = CODEC_WM8750;
+	
+	if (usecodec == CODEC_WM8750) {	   	   
+	   printk("Using CODEC_WM8750\n");
+	   if (ts7600_init_audio_device("mxs-wm8750") < 0) {
+	      printk(KERN_ERR "Failed to initialize platform device 'mxs-wm8750'\n");
+	      return -EINVAL;
+	   }
+	   mxs_evk_dai.name = "WM8750";
+	   mxs_evk_dai.stream_name = "WM8750";
+	   mxs_evk_dai.codec_dai = &wm8750_dai;
+	   mxs_evk_snd_devdata = &mxs_evk_snd_wm8750_devdata;
+	   mxs_evk_snd_devdata->codec_dev = &soc_codec_dev_wm8750;
+	   mxs_evk_codec_audio_driver.driver.name = "mxs-wm8750";
+	   
+	} else if (usecodec == CODEC_SGTL5000) {	   
+	   printk("Using CODEC_SGTL5000\n");
+	   if (ts7600_init_audio_device("mxs-sgtl5000") < 0) {
+	      printk(KERN_ERR "Failed to initialize platform device 'mxs-sgtl5000'\n");
+	      return -EINVAL;
+	   }
+	   mxs_evk_dai.name = "SGTL5000";
+	   mxs_evk_dai.stream_name = "SGTL5000";
+	   mxs_evk_dai.codec_dai = &sgtl5000_dai;
+	   mxs_evk_snd_devdata = &mxs_evk_snd_sgtl5000_devdata;
+	   mxs_evk_snd_devdata->codec_dev = &soc_codec_dev_sgtl5000;
+	   mxs_evk_codec_audio_driver.driver.name = "mxs-sgtl5000";
+	   
+	} else if (usecodec == CODEC_SII9022) {
+#if (0)	   
+	   printk("Using CODEC_SII9022\n");
+	   if (ts7600_init_audio_device("mxs-sii9022") < 0) {
+	      printk(KERN_ERR "Failed to initialize platform device 'mxs-sii9022'\n");
+	      return -EINVAL;
+	   }
+	   mxs_evk_dai.name = "SII9022";
+	   mxs_evk_dai.stream_name = "SII9022";
+	   mxs_evk_dai.codec_dai = &sii9022_dai;
+	   mxs_evk_codec_audio_driver.driver.name = "mxs-sii9022";
+#else
+      printk(KERN_ERR "SII9022 not supported at this time!\n");
+      return -EINVAL;
+#endif
+	} else {
+	   
+	    printk(KERN_ERR "Invalid codec in mxs_evk_init()\n");
+	    return -EINVAL;
+	}
+				
+	ret = platform_driver_register(&mxs_evk_codec_audio_driver);
 	if (ret)
 		return -ENOMEM;
 
 	mxs_evk_snd_device = platform_device_alloc("soc-audio", 1);
 	if (!mxs_evk_snd_device)
 		return -ENOMEM;
-
-	platform_set_drvdata(mxs_evk_snd_device, &mxs_evk_snd_devdata);
-	mxs_evk_snd_devdata.dev = &mxs_evk_snd_device->dev;
+		
+	platform_set_drvdata(mxs_evk_snd_device, mxs_evk_snd_devdata);
+	mxs_evk_snd_devdata->dev = &mxs_evk_snd_device->dev;
 	ret = platform_device_add(mxs_evk_snd_device);
 
 	if (ret)
 		platform_device_put(mxs_evk_snd_device);
-
+	
 	return ret;
 }
 
 static void __exit mxs_evk_exit(void)
 {
-	platform_driver_unregister(&mxs_evk_sgtl5000_audio_driver);
+	platform_driver_unregister(&mxs_evk_codec_audio_driver);
 	platform_device_unregister(mxs_evk_snd_device);
 }
 

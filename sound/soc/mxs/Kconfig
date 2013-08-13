@@ -14,10 +14,12 @@ config SND_MXS_SOC_EVK_DEVB
 	tristate "SoC Audio support for MXS-EVK SGTL5000"
 	depends on SND_MXS_SOC && ARCH_MX28
 	select SND_SOC_SGTL5000
+	select SND_SOC_WM8750 if MACH_TS7600
 	help
 	  Say Y if you want to add support for SoC audio on MXS EVK development
 	  board with the sgtl5000 codec.
 
+	  
 config SND_MXS_SOC_EVK_ADC
 	tristate "SoC Audio support for MXS-EVK ADC/DAC"
 	depends on SND_MXS_SOC && ARCH_MX23
@@ -49,3 +51,5 @@ config SND_MXS_SOC_EVK_DEVB_SPDIF
 	help
 	  Say Y if you want to add support for SoC audio on MXS EVK development
 	  board with the SPDIF transmitter.
+	  
+	  

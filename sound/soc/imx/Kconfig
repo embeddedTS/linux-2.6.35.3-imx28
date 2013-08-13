@@ -48,7 +48,7 @@ config SND_SOC_IMX_3STACK_WM8350
 	help
 	  Say Y if you want to add support for SoC audio on IMX 3STACK
 	  with the WM8350.
-
+	  
 config SND_SOC_IMX_3STACK_SGTL5000
 	tristate "SoC Audio support for IMX - SGTL5000"
 	select SND_MXC_SOC_SSI
