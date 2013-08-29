@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "Building external wireless modules (this will take some time)"
+(
+cd compat-wireless-3.6.8-1/ &&\
+(
+  ./scripts/driver-select ts >/dev/null 2>&1 &&\
+  make >/dev/null 2>&1
+  if [ $? -ne "0" ] ; then
+    echo "Failed to build external wireless modules"
+    echo "Run 'make' from compat-wireless-3.6.8-1/ to see full output"
+    exit 1
+  fi
+  echo "External wireless modules successfully built"
+  exit 0
+)
+)

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ $# -ne 1 ] ; then
+  echo "Usage: $0 <device>"
+  echo "Where <device> is name of root filesystem device, e.g. sda3, sdb3, mmcblk0p3, etc."
+  exit 1
+fi
+
+mkdir mount_point/ &&\
+sudo mount /dev/$1 mount_point/ &&\
+(
+  echo "Installing kernel modules to device $1"
+  INSTALL_MOD_PATH=mount_point/ sudo -E make modules_install >/dev/null 2>&1 
+  if [ $? -ne "0" ] ; then
+    echo "Failed to install modules to device $1"
+    exit 1
+  fi
+) &&\
+
+(
+  echo "Installing kernel headers to device $1"
+  INSTALL_HDR_PATH=mount_point/ sudo -E make headers_install >/dev/null 2>&1
+  if [ $? -ne "0" ] ; then
+    echo "Failed to install kernel headers to device $1"
+    exit 1
+  fi
+) &&\
+
+(
+  cd compat-wireless-3.6.8-1 &&\
+  echo "Installing external wireless modules to device $1"
+  KMODDIR_ARG="updates" KLIB=mount_point/ KMODPATH_ARG="INSTALL_MOD_PATH=mount_point" sudo -E make install >/dev/null 2>&1
+  if [ $? -ne "0" ] ; then
+    echo "Failed to install external wireless modules to device $1"
+    exit 1
+  fi
+)
+sudo umount mount_point
+rmdir mount_point

@@ -1,0 +1,16 @@
+#!/bin/bash
+echo "Building final bootstream from zImage"
+cp arch/arm/boot/zImage imx-bootlets-src-10.12.01/ 2>&1 >/dev/null &&\
+(
+cd imx-bootlets-src-10.12.01/ &&\
+(
+  make  >/dev/null 2>&1
+  if [ $? -ne "0" ] ; then
+    echo "Failed to build bootstream"
+    echo "Run 'make' from imx-bootlets-src-10.12.01/ to see full output"
+    exit 1
+  fi
+  echo "Bootstream successfully built"
+  exit 0
+)
+)
