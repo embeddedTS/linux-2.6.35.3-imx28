@@ -27,7 +27,157 @@
 
 #include "mx28_pins.h"
 
-static struct pin_desc mx28evk_fixed_pins[] = {
+static struct pin_desc ts7670_pins[] = {
+#ifdef CONFIG_MXS_AUART0_DEVICE_ENABLE
+	{
+	 .name  = "AUART0.CTS",
+	 .id    = PINID_AUART0_CTS,
+	 .fun   = PIN_FUN1,
+	 },
+	{
+	 .name  = "AUART0.RTS",
+	 .id    = PINID_AUART0_RTS,
+	 .fun   = PIN_FUN1,
+	 },
+#endif
+
+#ifdef CONFIG_MXS_AUART4_DEVICE_ENABLE
+	{
+	 .name	= "AUART4.TX",
+	 .id	= PINID_SAIF0_SDATA0,
+	 .fun	= PIN_FUN3,
+	 },
+	{
+	 .name	= "AUART4.RX",
+	 .id	= PINID_SAIF0_BITCLK,
+	 .fun	= PIN_FUN3,
+	 },
+#endif
+
+#if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
+        {                          
+         .name  = "SSP2_SCK",      
+         .id    = PINID_SSP0_DATA7,
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_12MA,
+         .voltage       = PAD_3_3V,
+         .pullup        = 0,
+         .drive         = 1,
+         .pull          = 0,       
+         },                        
+        {                          
+         .name  = "SSP2_CMD",      
+         .id    = PINID_SSP0_DATA6,
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_8MA, 
+         .voltage       = PAD_3_3V,
+         .pullup        = 1,       
+         .drive         = 1,       
+         .pull          = 1,       
+         },                        
+        {                          
+         .name  = "SSP2_DATA0",    
+         .id    = PINID_SSP0_DATA4,
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_8MA, 
+         .voltage       = PAD_3_3V,
+         .pullup        = 1,       
+         .drive         = 1,       
+         .pull          = 1,       
+         },                        
+        {                          
+         .name  = "SSP2_DATA1",    
+         .id    = PINID_SSP2_SS1,  
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_8MA, 
+         .voltage       = PAD_3_3V,
+         .pullup        = 1,       
+         .drive         = 1,       
+         .pull          = 1,       
+         },                        
+        {                          
+         .name  = "SSP2_DATA2",    
+         .id    = PINID_SSP2_SS2,  
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_8MA, 
+         .voltage       = PAD_3_3V,
+         .pullup        = 1,       
+         .drive         = 1,       
+         .pull          = 1,       
+         },                        
+        {                          
+         .name  = "SSP2_DATA3",    
+         .id    = PINID_SSP0_DATA5,
+         .fun   = PIN_FUN2,        
+         .strength      = PAD_8MA, 
+         .voltage       = PAD_3_3V,
+         .pullup        = 1,       
+         .drive         = 1,       
+         .pull          = 1,       
+         },                        
+#endif
+
+};
+
+static struct pin_desc ts7400_pins[] = {
+#if defined(CONFIG_SND_MXS_SOC_DAI) || defined(CONFIG_SND_MXS_SOC_DAI_MODULE)
+	/* Configurations of SAIF0 port pins */
+	{
+	 .name	= "SAIF0_MCLK",
+	 .id	= PINID_SAIF0_MCLK,
+	 .fun	= PIN_FUN1,
+	 .strength	= PAD_12MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name	= "SAIF0_LRCLK",
+	 .id	= PINID_SAIF0_LRCLK,
+	 .fun	= PIN_FUN1,
+	 .strength	= PAD_12MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name	= "SAIF0_BITCLK",
+	 .id	= PINID_SAIF0_BITCLK,
+	 .fun	= PIN_FUN1,
+	 .strength	= PAD_12MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name	= "SAIF0_SDATA0",
+	 .id	= PINID_SAIF0_SDATA0,
+	 .fun	= PIN_FUN1,
+	 .strength	= PAD_12MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name	= "SAIF1_SDATA0",
+	 .id	= PINID_SAIF1_SDATA0,
+	 .fun	= PIN_FUN1,
+	 .strength	= PAD_12MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+#endif
+
+
+};
+
+static struct pin_desc common_pins[] = {
 	{
 	 .name = "DUART.RX",
 	 .id = PINID_PWM0,
@@ -49,16 +199,6 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id    = PINID_AUART0_TX,
 	 .fun   = PIN_FUN1,
 	 },
-	{
-	 .name  = "AUART0.CTS",
-	 .id    = PINID_AUART0_CTS,
-	 .fun   = PIN_FUN1,
-	 },
-	{
-	 .name  = "AUART0.RTS",
-	 .id    = PINID_AUART0_RTS,
-	 .fun   = PIN_FUN1,
-	 },
 #endif
 #ifdef CONFIG_MXS_AUART1_DEVICE_ENABLE
 	{
@@ -76,24 +216,24 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	{
 	 .name	= "AUART2.RX",
 	 .id	= PINID_SSP2_SCK,
-	 .fun	= PIN_FUN1,
+	 .fun	= PIN_FUN2,
 	 },
 	{
 	 .name	= "AUART2.TX",
 	 .id	= PINID_SSP2_MOSI,
-	 .fun	= PIN_FUN1,
+	 .fun	= PIN_FUN2,
 	 },
 #endif
 #ifdef CONFIG_MXS_AUART3_DEVICE_ENABLE
 	{
 	 .name  = "AUART3.RX",
 	 .id    = PINID_SSP2_MISO,
-	 .fun   = PIN_FUN1,
+	 .fun   = PIN_FUN2,
 	 },
 	{
 	 .name  = "AUART3.TX",
 	 .id    = PINID_SSP2_SS0,
-	 .fun   = PIN_FUN1,
+	 .fun   = PIN_FUN2,
 	 },
 #endif
 
@@ -181,7 +321,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .strength	= PAD_12MA,
 	 .voltage	= PAD_3_3V,
 	 .pullup	= 0,
-	 .drive 	= 2,
+	 .drive 	= 1,
 	 .pull 		= 0,
 	 },
 	{
@@ -235,249 +375,14 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull 		= 1,
 	 },
 #endif
-	{
-	 .name  = "LCD_D00",
-	 .id	= PINID_LCD_D00,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D01",
-	 .id	= PINID_LCD_D01,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D02",
-	 .id	= PINID_LCD_D02,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D03",
-	 .id	= PINID_LCD_D03,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D04",
-	 .id	= PINID_LCD_D04,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D05",
-	 .id	= PINID_LCD_D05,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D06",
-	 .id	= PINID_LCD_D06,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D07",
-	 .id	= PINID_LCD_D07,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D08",
-	 .id	= PINID_LCD_D08,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D09",
-	 .id	= PINID_LCD_D09,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D10",
-	 .id	= PINID_LCD_D10,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D11",
-	 .id	= PINID_LCD_D11,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D12",
-	 .id	= PINID_LCD_D12,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D13",
-	 .id	= PINID_LCD_D13,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D14",
-	 .id	= PINID_LCD_D14,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D15",
-	 .id	= PINID_LCD_D15,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D16",
-	 .id	= PINID_LCD_D16,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D17",
-	 .id	= PINID_LCD_D17,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D18",
-	 .id	= PINID_LCD_D18,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D19",
-	 .id	= PINID_LCD_D19,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D20",
-	 .id	= PINID_LCD_D20,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D21",
-	 .id	= PINID_LCD_D21,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D22",
-	 .id	= PINID_LCD_D22,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name  = "LCD_D23",
-	 .id	= PINID_LCD_D23,
-	 .fun	= PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name = "LCD_RESET",
-	 .id = PINID_LCD_RESET,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 .output = 1,
-	 .data = 0,
-	 },
-	{
-	 .name = "LCD_VSYNC",
-	 .id   = PINID_LCD_RD_E,
-	 .fun  = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name = "LCD_HSYNC",
-	 .id = PINID_LCD_WR_RWN,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name = "LCD_DOTCLK",
-	 .id = PINID_LCD_RS,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 },
-	{
-	 .name = "LCD_BACKLIGHT",
-	 .id = PINID_PWM4,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 },
-
-	{
+	/*{
 	 .name = "FPGA_CLK",
 	 .id = PINID_PWM2,
 	 .fun = PIN_FUN1,
 	 .strength = PAD_8MA,
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
-	 },
+	 },*/
 	/* ETH_PWR# */
 	{
 	 .name	= "GPMI_RDY1",
@@ -512,96 +417,6 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull 		= 1,
 	 .drive		= 1,
 	 },
-	/*{
-	 .name = "INT0",
-	 .id            = PINID_GPMI_CLE,
-	 .fun           = PIN_GPIO,
-	 .strength      = PAD_8MA,
-	 .voltage       = PAD_3_3V,
-	 .drive         = 1,
-	 },
-	{
-	 .name = "INT1",
-	 .id            = PINID_GPMI_CE1N,
-	 .fun           = PIN_GPIO,
-	 .strength      = PAD_8MA,
-	 .voltage       = PAD_3_3V,
-	 .drive         = 1,
-	 },*/
-	/*{
-	 .name = "INT2",
-	 .id            = PINID_AUART1_RX,
-	 .fun           = PIN_GPIO,
-	 .strength      = PAD_8MA,
-	 .voltage       = PAD_3_3V,
-	 .drive         = 1,
-	 },*/
-#if defined(CONFIG_SND_MXS_SOC_DAI) || defined(CONFIG_SND_MXS_SOC_DAI_MODULE)
-	/* Configurations of SAIF0 port pins */
-	{
-	 .name	= "SAIF0_MCLK",
-	 .id	= PINID_SAIF0_MCLK,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },
-	{
-	 .name	= "SAIF0_LRCLK",
-	 .id	= PINID_SAIF0_LRCLK,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },
-	{
-	 .name	= "SAIF0_BITCLK",
-	 .id	= PINID_SAIF0_BITCLK,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },
-	{
-	 .name	= "SAIF0_SDATA0",
-	 .id	= PINID_SAIF0_SDATA0,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },
-	{
-	 .name	= "SAIF1_SDATA0",
-	 .id	= PINID_SAIF1_SDATA0,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },
-#endif
-#if defined(CONFIG_SND_SOC_MXS_SPDIF) || \
-       defined(CONFIG_SND_SOC_MXS_SPDIF_MODULE)
-	{
-	 .name	= "SPDIF",
-	 .id	= PINID_SPDIF,
-	 .fun	= PIN_FUN1,
-	 .strength	= PAD_12MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	},
-#endif
 };
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
@@ -1007,20 +822,26 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 	}
 }
 
-void __init mx28evk_pins_init(void)
+void __init mx28evk_pins_init(int is7670)
 {
+	if(is7670) {
+		mx28evk_init_pin_group(ts7670_pins,
+		  ARRAY_SIZE(ts7670_pins));
+	} else {
+		mx28evk_init_pin_group(ts7400_pins,
+		  ARRAY_SIZE(ts7400_pins));
+#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
+		mx28evk_init_pin_group(mx28evk_spi_pins,
+		  ARRAY_SIZE(mx28evk_spi_pins));
+#endif
+	}
+	mx28evk_init_pin_group(common_pins,
+	  ARRAY_SIZE(common_pins));
 
-	mx28evk_init_pin_group(mx28evk_fixed_pins,
-						ARRAY_SIZE(mx28evk_fixed_pins));
 
-	pr_info("Initializing GPMI pins\n");
 	mx28evk_init_pin_group(mx28evk_gpmi_pins,
 	  ARRAY_SIZE(mx28evk_gpmi_pins));
 
-#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
-	mx28evk_init_pin_group(mx28evk_spi_pins,
-					ARRAY_SIZE(mx28evk_spi_pins));
-#endif
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)

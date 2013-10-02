@@ -26,7 +26,11 @@ extern void __init mx28_clock_init(void);
 extern void __init mx28_irq_init(void);
 extern int __init mx28_pinctrl_init(void);
 extern int __init mx28_gpio_init(void);
+#if defined(CONFIG_MACH_TS7400)
+extern int __init mx28_device_init(int is7670);
+#else
 extern int __init mx28_device_init(void);
+#endif
 extern void __init mx28_init_auart(void);
 extern void __init
 mx28_set_input_clk(unsigned long, unsigned long, unsigned long, unsigned long);

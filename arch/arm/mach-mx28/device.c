@@ -52,6 +52,8 @@
 #include "device.h"
 #if defined(CONFIG_MACH_TS7600)
   #include "ts7600.h"
+#elif defined(CONFIG_MACH_TS7400)
+  #include "ts7400.h"
 #else
   #include "mx28evk.h"
 #endif
@@ -732,7 +734,11 @@ static struct resource mmc1_resource[] = {
 	},
 };
 
+#if defined(CONFIG_MACH_TS7400)
+static void __init mx28_init_mmc(int is7670)
+#else
 static void __init mx28_init_mmc(void)
+#endif
 {
 	struct platform_device *pdev;
 
@@ -745,13 +751,10 @@ static void __init mx28_init_mmc(void)
 		pdev->dev.platform_data = &mmc0_data;
 		mxs_add_device(pdev, 2);
 	}
-
-#if !defined(CONFIG_MACH_TS7400)
-#if defined(CONFIG_MACH_MXS28EVK)
-	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
-#else
-	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+#if defined(CONFIG_MACH_TS7400)
+	if(is7670) {
 #endif
+	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
 		pdev = mxs_get_device("mxs-mmc", 1);
 		if (pdev == NULL || IS_ERR(pdev))
 			return;
@@ -760,7 +763,10 @@ static void __init mx28_init_mmc(void)
 		pdev->dev.platform_data = &mmc1_data;
 		mxs_add_device(pdev, 2);
 	}
+#if defined(CONFIG_MACH_TS7400)
+	}
 #endif
+
 }
 
 #else
@@ -1228,6 +1234,7 @@ static void __init mx28_init_ts(void)
 #if defined(CONFIG_CAN_FLEXCAN) || defined(CONFIG_CAN_FLEXCAN_MODULE)
 static void flexcan_xcvr_enable(int id, int en)
 {
+	/*
 	static int pwdn;
 	if (en) {
 		if (!pwdn++)
@@ -1236,6 +1243,7 @@ static void flexcan_xcvr_enable(int id, int en)
 		if (!--pwdn)
 			gpio_set_value(MXS_PIN_TO_GPIO(PINID_SSP1_CMD), 0);
 	}
+	*/
 }
 
 struct flexcan_platform_data flexcan_data[] = {
@@ -1801,8 +1809,11 @@ static void mx28_init_otp(void)
 }
 #endif
 
-int __init mx28_device_init(void)
-{
+#if defined(CONFIG_MACH_TS7400)
+int __init mx28_device_init(is7670) {
+#else
+int __init mx28_device_init(void) {
+#endif
 	mx28_init_fpgaclk();
 	mx28_init_dma();
 	mx28_init_viim();
@@ -1810,8 +1821,13 @@ int __init mx28_device_init(void)
 	mx28_init_i2c();
 	mx28_init_lradc();
 	mx28_init_auart();
+#if defined(CONFIG_MACH_TS7400)
+	mx28_init_mmc(is7670);
+	if(!is7670) mx28_init_spi();
+#else
 	mx28_init_mmc();
 	mx28_init_spi();
+#endif
 	mx28_init_gpmi_nfc();
 	mx28_init_wdt();
 	mx28_init_rtc();

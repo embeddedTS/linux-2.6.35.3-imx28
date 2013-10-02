@@ -16,6 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <linux/delay.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/io.h>
@@ -39,7 +40,7 @@
 #include <linux/mtd/physmap.h>
 
 #include "device.h"
-#include "ts7600.h"
+#include "ts7400.h"
 
 static struct i2c_board_info __initdata mxs_i2c_device[] = {
 	{ I2C_BOARD_INFO("sgtl5000-i2c", 0xa), .flags = I2C_M_TEN },
@@ -134,8 +135,81 @@ static void __init mx28evk_device_init(void)
 	mx28evk_init_leds();
 }
 
+static void __init i2c_pause(void) { udelay(1); }
+#define scl_z do { i2c_pause(); iowrite32((1 << 24), (dio + 0x2ce)); } while(0)
+#define scl_0 do { i2c_pause(); iowrite32((1 << 24), (dio + 0x2cd)); } while(0)
+#define sda_z do { i2c_pause(); iowrite32((1 << 25), (dio + 0x2ce)); } while(0)
+#define sda_0 do { i2c_pause(); iowrite32((1 << 25), (dio + 0x2cd)); } while(0)
+#define sda_in (ioread32((dio + 0x24c)) & (1 << 25))
+static int __init get_M0_id(void) {
+	static unsigned char i2c_7bit_adr = 0x78;
+	volatile unsigned int *dio = NULL;
+	unsigned int d, i, ack, ret;
+
+	request_mem_region(0x80018000, 4095, "gpio");
+	dio = ioremap(0x80018000, 4095);
+	
+	iowrite32(0xf0000, (dio + 0x5d)); /* scl/sda GPIO mode */
+	iowrite32(0x3000000, (dio + 0x2ce)); /* tristate sda/scl */
+	iowrite32(0x3000000, (dio + 0x138)); /* sda/scl low */
+
+
+
+	scl_z; /* tristate, scl/sda pulled up */
+	sda_z;
+
+	sda_0; /* i2c, start (sda low) */
+	for (d = i2c_7bit_adr<<1, i = 0; i < 7; i++, d <<= 1) {
+		scl_0; /* scl low */
+		if (d & 0x80) sda_z; else sda_0;
+		scl_z; /* scl high */
+	}
+	scl_0;
+	sda_z;
+	scl_z;
+
+	scl_0;
+	sda_z; /* scl low, tristate sda */
+	scl_z; /* scl high, tristate sda */
+	ack = sda_in; /* sample ack */
+	for (d = 0; d < 17; d++) {
+		for (ret = i = 0; i < 8; i++) {
+			scl_0; /* scl low, tri sda */
+			sda_z;
+			scl_z; /* scl high, tri sda */
+			scl_z; /* scl high, tri sda (for timing) */
+			ret <<= 1;
+			ret |= sda_in ? 1 : 0;
+		}
+		if(d != 16) {
+			scl_0;
+			sda_0;
+			scl_z;
+			scl_z;
+		}
+	}
+	scl_0;
+	sda_z;
+	scl_z;
+	scl_z;
+	scl_0;
+	sda_0;
+	scl_z;
+	sda_z;
+
+	release_mem_region(0x80018000, 4095);
+	iounmap(dio);
+
+	return (ret & 0x1);
+}
+
+		
 static void __init mx28evk_init_machine(void)
 {
+	int is7670;
+	is7670 = get_M0_id();
+	printk(KERN_INFO "boardID=%s\n", is7670 ? "7670" : "7400");
+
 	mx28_pinctrl_init();
 	/* Init iram allocate */
 #ifdef CONFIG_VECTORS_PHY_ADDR
@@ -146,12 +220,12 @@ static void __init mx28evk_init_machine(void)
 #endif
 
 	mx28_gpio_init();
-	mx28evk_pins_init();
-	mx28_device_init();
+	mx28evk_pins_init(is7670);
+	mx28_device_init(is7670);
 	mx28evk_device_init();
 }
 
-MACHINE_START(MX28EVK, "Technologic Systems TS-7400")
+MACHINE_START(MX28EVK, "Technologic Systems TS-7400/TS-7670")
 	.phys_io	= 0x80000000,
 	.io_pg_offst	= ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params	= 0x40000100,
