@@ -197,8 +197,8 @@ static int __init get_M0_id(void) {
 	scl_z;
 	sda_z;
 
-	release_mem_region(0x80018000, 4095);
 	iounmap(dio);
+	release_mem_region(0x80018000, 4095);
 
 	return (ret & 0x1);
 }
@@ -207,6 +207,7 @@ static int __init get_M0_id(void) {
 static void __init mx28evk_init_machine(void)
 {
 	int is7670;
+
 	is7670 = get_M0_id();
 	printk(KERN_INFO "boardID=%s\n", is7670 ? "7670" : "7400");
 

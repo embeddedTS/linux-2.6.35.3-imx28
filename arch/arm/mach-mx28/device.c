@@ -770,7 +770,11 @@ static void __init mx28_init_mmc(void)
 }
 
 #else
+#if defined(CONFIG_MACH_TS7400)
+static void mx28_init_mmc(int is7670)
+#else
 static void mx28_init_mmc(void)
+#endif
 {
 }
 #endif

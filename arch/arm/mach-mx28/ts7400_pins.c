@@ -179,6 +179,20 @@ static struct pin_desc ts7400_pins[] = {
 
 static struct pin_desc common_pins[] = {
 	{
+	 .name 	= "GREEN_LED",
+	 .id 	= PINID_GPMI_CE1N,
+	 .fun 	= PIN_GPIO,
+	 .output	= 1,
+	 .data 	= 0,
+	},
+	{
+	 .name 	= "RED_LED",
+	 .id 	= PINID_GPMI_RESETN,
+	 .fun 	= PIN_GPIO,
+	 .output	= 1,
+	 .data 	= 0,
+	},
+	{
 	 .name = "DUART.RX",
 	 .id = PINID_PWM0,
 	 .fun = PIN_FUN3,
@@ -669,7 +683,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .pullup   = 0,
 	 .drive    = !0
 	 },
-	{
+	/*{
 	 .name     = "GPMI RST-",
 	 .id       = PINID_GPMI_RESETN,
 	 .fun      = PIN_FUN1,
@@ -677,7 +691,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
 	 .drive    = !0
-	 },
+	 },*/
 };
 
 #if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
