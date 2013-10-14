@@ -753,15 +753,8 @@ int mx28evk_enet_gpio_init(void)
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 
-	/*
-	 * Before timer bug fix(set wrong match value of timer),
-	 * mdelay(10) delay 50ms actually.
-	 * So change delay to 50ms after timer issue fix.
-	 */
 	mdelay(1);
-	gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT));
-	/* Most a reset should last from switch chip is 14ms */
-	mdelay(15);
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 
 	return 0;
 }
@@ -769,7 +762,7 @@ int mx28evk_enet_gpio_init(void)
 void mx28evk_enet_io_lowerpower_enter(void)
 {
 	int i;
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 1);
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 1);
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
 	//gpio_request(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), "ETH_INT");
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), 0);
@@ -788,7 +781,7 @@ void mx28evk_enet_io_lowerpower_enter(void)
 void mx28evk_enet_io_lowerpower_exit(void)
 {
 	int i;
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
 	//gpio_free(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK));
 	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_pins); i++) {

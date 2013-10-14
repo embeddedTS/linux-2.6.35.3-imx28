@@ -728,7 +728,6 @@ static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 			case 0x4: return 0x1e1;
 			case 0x5: return 0xc5e1;
 		}
-		hasphy = 0;
 	}
 
 	fep->mii_timeout = 0;
@@ -804,6 +803,9 @@ static int fec_enet_mii_probe(struct net_device *dev)
 			break;
 		}
 	}
+
+	if(phy_addr == 0x18)
+	  hasphy = 0;
 
 	if (!phy_dev) {
 		printk(KERN_ERR "%s: no PHY found\n", dev->name);
