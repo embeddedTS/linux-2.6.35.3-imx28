@@ -447,11 +447,9 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .name	= "SSP0_DETECT",
 	 .id	        = PINID_SSP0_DETECT,
 	 .fun	        = PIN_GPIO,
-	 .strength	= PAD_8MA,
+	 .strength	= PAD_12MA,
 	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
+	 .output	= 1,
 	 .data		= 0,
 	 },
 	{
@@ -814,13 +812,7 @@ int mx28evk_enet_gpio_init(void)
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 
-	/*
-	 * Before timer bug fix(set wrong match value of timer),
-	 * mdelay(10) delay 50ms actually.
-	 * So change delay to 50ms after timer issue fix.
-	 */
 	mdelay(1);
-	//gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT));
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 	/* Most a reset should last from switch chip is 14ms */
 	mdelay(15);
