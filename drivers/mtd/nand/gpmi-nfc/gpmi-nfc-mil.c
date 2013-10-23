@@ -1800,16 +1800,22 @@ static int mil_boot_areas_init(struct gpmi_nfc_data *this)
 		partitions[0].size       = rom->boot_area_size_in_bytes;
 		partitions[0].mask_flags = 0;
 
+		/* Config file storage space */
+		partitions[1].name		= "gpmi-nfc-tspart";
+		partitions[1].offset		= rom->boot_area_size_in_bytes;
+		partitions[1].size		= 20971520;
+		partitions[1].mask_flags	= 0;
+
 		/* General Use */
 
-		partitions[1].name       = general_use_name;
-		partitions[1].offset     = rom->boot_area_size_in_bytes;
-		partitions[1].size       = MTDPART_SIZ_FULL;
-		partitions[1].mask_flags = 0;
+		partitions[2].name       = general_use_name;
+		partitions[2].offset     = rom->boot_area_size_in_bytes + 20971520;
+		partitions[2].size       = MTDPART_SIZ_FULL;
+		partitions[2].mask_flags = 0;
 
 		/* Construct and register the partitions. */
 
-		add_mtd_partitions(mtd, partitions, 2);
+		add_mtd_partitions(mtd, partitions, 3);
 
 		/* Find the general use MTD. */
 
