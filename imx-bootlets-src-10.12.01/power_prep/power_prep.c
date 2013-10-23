@@ -117,7 +117,7 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
  * select which one to use.  This is only for hardware configurations this no
  * DCDC_BATT power source.
 */
-//#define NO_DCDC_BATT_SOURCE
+#define NO_DCDC_BATT_SOURCE
 
 /* Enable the following if you only have a DCDC_BATT source only and no V
  * This includes configurations with and without a supercap on the BATTERY pin as
@@ -323,7 +323,7 @@ int _start( void )
 
 	// Ready the power block for 5V detection.
 	PowerPrep_Setup5vDetect();
-	PowerPrep_SetupBattDetect();
+	//PowerPrep_SetupBattDetect();
 
 	// Ensure the power source that turned on the device is sufficient to
 	// power the device.
@@ -416,8 +416,8 @@ int PowerPrep_ConfigurePowerSource( void )
 	bBatteryReady = false;
 	bBatteryGood = false;
 
-	printf("\r\nConfigured for 5v only power source.\
-		Battery powered operation disabled.\r\n");
+	//printf("\r\nConfigured for 5v only power source.\
+	//	Battery powered operation disabled.\r\n");
 
 
 	/* Disable automatic battery voltage measurements which seem unnecessary

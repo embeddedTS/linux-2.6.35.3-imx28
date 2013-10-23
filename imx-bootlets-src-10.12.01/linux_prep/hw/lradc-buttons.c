@@ -105,10 +105,11 @@ struct keys_driver lradc_keys_driver = {
 	.get_keys	= lradc_read_button,
 };
 
-static void lradc_keypad_init (void)
+/*static void lradc_keypad_init (void)
 {
 	lradc_keypad_hwinit();
 	set_keys_driver(&lradc_keys_driver);
-}
+}*/
 
+static void lradc_keypad_init (void) {;}
 hw_initcall(lradc_keypad_init);
