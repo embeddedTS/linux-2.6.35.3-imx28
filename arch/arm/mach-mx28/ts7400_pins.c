@@ -755,6 +755,7 @@ int mx28evk_enet_gpio_init(void)
 
 	mdelay(1);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+	mdelay(15);
 
 	return 0;
 }
