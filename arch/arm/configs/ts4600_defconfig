@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Thu Oct 31 12:16:20 2013
+# Tue Nov  5 11:05:12 2013
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -560,7 +560,7 @@ CONFIG_BLK_DEV_LOOP=m
 #
 # DRBD disabled because PROC_FS, INET or CONNECTOR not selected
 #
-CONFIG_BLK_DEV_NBD=m
+CONFIG_BLK_DEV_NBD=y
 # CONFIG_BLK_DEV_UB is not set
 CONFIG_BLK_DEV_RAM=m
 CONFIG_BLK_DEV_RAM_COUNT=4
