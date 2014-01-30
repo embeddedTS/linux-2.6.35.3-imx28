@@ -117,7 +117,7 @@ void PowerPrep_PrintBatteryVoltage(unsigned int value);
  * select which one to use.  This is only for hardware configurations this no
  * DCDC_BATT power source.
 */
-#define NO_DCDC_BATT_SOURCE
+//#define NO_DCDC_BATT_SOURCE
 
 /* Enable the following if you only have a DCDC_BATT source only and no V
  * This includes configurations with and without a supercap on the BATTERY pin as
@@ -316,14 +316,13 @@ int _start( void )
 
 	hw_power_SetPowerClkGate( false );
 
-	//printf("\r\nPowerPrep start initialize power...\r\n");
 	HW_POWER_VDDDCTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
 	HW_POWER_VDDACTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
 	HW_POWER_VDDIOCTRL.B.LINREG_OFFSET = HW_POWER_LINREG_OFFSET_STEP_BELOW;
 
 	// Ready the power block for 5V detection.
 	PowerPrep_Setup5vDetect();
-	//PowerPrep_SetupBattDetect();
+	PowerPrep_SetupBattDetect();
 
 	// Ensure the power source that turned on the device is sufficient to
 	// power the device.
@@ -416,9 +415,6 @@ int PowerPrep_ConfigurePowerSource( void )
 	bBatteryReady = false;
 	bBatteryGood = false;
 
-	//printf("\r\nConfigured for 5v only power source.\
-	//	Battery powered operation disabled.\r\n");
-
 
 	/* Disable automatic battery voltage measurements which seem unnecessary
 	 * for this configuration.
@@ -498,7 +494,6 @@ int PowerPrep_ConfigurePowerSource( void )
 		* if battery becomes invalid in the future
 		*/
  		bBatteryGood = true;
-		printf("\r\nboot from battery. 5v input not detected\r\n");
 		/*Boot from battery*/
 		iReturnValue = PowerPrep_BattBoot();
 		PowerPrep_CPUClock2PLL();
@@ -511,9 +506,6 @@ int PowerPrep_ConfigurePowerSource( void )
 		if(!bBatteryGood) {
 				BF_CLR(LRADC_CONVERSION, AUTOMATIC);
 				BF_WR(POWER_BATTMONITOR, BATT_VAL,0);
-				/*printf("\r\nNo battery or bad battery\
-					detected!!!.Disabling battery\
-					voltage measurements./r/n");*/
 		}
 		iReturnValue = PowerPrep_5vBoot();
 
@@ -1176,8 +1168,6 @@ void PowerPrep_EnableOutputRailProtection( void )
 bool PowerPrep_IsBatteryReady( void )
 {
 	unsigned int BattVal = hw_power_GetBatteryVoltage();
-	//printf("Battery Voltage = ");
-	//PowerPrep_PrintBatteryVoltage(BattVal);
 	if(hw_power_GetBatteryVoltage() >=
 		MINIMUM_SAFE_BOOTING_BATTERY_VOLTAGE_MV)
 		return true;

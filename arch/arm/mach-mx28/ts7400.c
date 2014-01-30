@@ -135,14 +135,13 @@ static void __init mx28evk_device_init(void)
 	mx28evk_init_leds();
 }
 
-static void __init i2c_pause(void) { udelay(1); }
+static void __init i2c_pause(void) { udelay(2); }
 #define scl_z do { i2c_pause(); iowrite32((1 << 24), (dio + 0x2ce)); } while(0)
 #define scl_0 do { i2c_pause(); iowrite32((1 << 24), (dio + 0x2cd)); } while(0)
 #define sda_z do { i2c_pause(); iowrite32((1 << 25), (dio + 0x2ce)); } while(0)
 #define sda_0 do { i2c_pause(); iowrite32((1 << 25), (dio + 0x2cd)); } while(0)
 #define sda_in (ioread32((dio + 0x24c)) & (1 << 25))
 static int __init get_M0_id(void) {
-	static unsigned char i2c_7bit_adr = 0x78;
 	volatile unsigned int *dio = NULL;
 	unsigned int d, i, ack, ret;
 
@@ -159,7 +158,7 @@ static int __init get_M0_id(void) {
 	sda_z;
 
 	sda_0; /* i2c, start (sda low) */
-	for (d = i2c_7bit_adr<<1, i = 0; i < 7; i++, d <<= 1) {
+	for (d = (0x78<<1)+1, i = 0; i < 7; i++, d <<= 1) {
 		scl_0; /* scl low */
 		if (d & 0x80) sda_z; else sda_0;
 		scl_z; /* scl high */
@@ -170,6 +169,7 @@ static int __init get_M0_id(void) {
 
 	scl_0;
 	sda_z; /* scl low, tristate sda */
+	scl_z; /* scl high, tristate sda */
 	scl_z; /* scl high, tristate sda */
 	ack = sda_in; /* sample ack */
 	for (d = 0; d < 17; d++) {
