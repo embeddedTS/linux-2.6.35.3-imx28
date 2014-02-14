@@ -389,14 +389,14 @@ static struct pin_desc common_pins[] = {
 	 .pull 		= 1,
 	 },
 #endif
-	/*{
+	{
 	 .name = "FPGA_CLK",
 	 .id = PINID_PWM2,
 	 .fun = PIN_FUN1,
 	 .strength = PAD_8MA,
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
-	 },*/
+	 },
 	/* ETH_PWR# */
 	{
 	 .name	= "GPMI_RDY1",
