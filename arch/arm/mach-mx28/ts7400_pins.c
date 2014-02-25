@@ -745,9 +745,8 @@ static struct pin_desc mx28evk_spi_pins[] = {
 int mx28evk_enet_gpio_init(void)
 {
 	/* pwr */
-	//gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
-	//printk(KERN_ERR "Turning on enet power\n");
+	gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
 
 	/* reset phy */
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
