@@ -28,6 +28,20 @@
 #include "mx28_pins.h"
 
 static struct pin_desc ts7670_pins[] = {
+	{
+	 .name 	= "BLUE_LED",
+	 .id 	= PINID_LCD_RD_E,
+	 .fun 	= PIN_GPIO,
+	 .output	= 1,
+	 .data 	= 1,
+	},
+	{
+	 .name 	= "YEL_LED",
+	 .id 	= PINID_LCD_RS,
+	 .fun 	= PIN_GPIO,
+	 .output	= 1,
+	 .data 	= 0,
+	},
 #ifdef CONFIG_MXS_AUART0_DEVICE_ENABLE
 	{
 	 .name  = "AUART0.CTS",
@@ -632,7 +646,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	{
 	 .name     = "GPMI RDY0",
 	 .id       = PINID_GPMI_RDY0,
-	 .fun      = PIN_FUN3,
+	 .fun      = PIN_FUN1,
 	 .strength = PAD_4MA,
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
