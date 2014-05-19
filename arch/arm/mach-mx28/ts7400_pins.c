@@ -74,7 +74,7 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP0_DATA7,
          .fun   = PIN_FUN2,        
          .strength      = PAD_12MA,
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 0,
          .drive         = 1,
          .pull          = 0,       
@@ -84,7 +84,7 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP0_DATA6,
          .fun   = PIN_FUN2,        
          .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 1,       
          .drive         = 1,       
          .pull          = 1,       
@@ -94,7 +94,7 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP0_DATA4,
          .fun   = PIN_FUN2,        
          .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 1,       
          .drive         = 1,       
          .pull          = 1,       
@@ -104,7 +104,7 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP2_SS1,  
          .fun   = PIN_FUN2,        
          .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 1,       
          .drive         = 1,       
          .pull          = 1,       
@@ -114,7 +114,7 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP2_SS2,  
          .fun   = PIN_FUN2,        
          .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 1,       
          .drive         = 1,       
          .pull          = 1,       
@@ -124,11 +124,20 @@ static struct pin_desc ts7670_pins[] = {
          .id    = PINID_SSP0_DATA5,
          .fun   = PIN_FUN2,        
          .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
+         .voltage       = PAD_1_8V,
          .pullup        = 1,       
          .drive         = 1,       
          .pull          = 1,       
          },                        
+	{
+	 .name          = "WIFI IRQ",
+	 .id            = PINID_LCD_D22,
+	 .fun           = PIN_GPIO,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .output        = 0,
+	 },
+
 #endif
 
 };
@@ -843,9 +852,9 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 	}
 }
 
-void __init mx28evk_pins_init(int is7670)
+void __init mx28evk_pins_init(int boardid)
 {
-	if(is7670) {
+	if(boardid) {
 		mx28evk_init_pin_group(ts7670_pins,
 		  ARRAY_SIZE(ts7670_pins));
 	} else {

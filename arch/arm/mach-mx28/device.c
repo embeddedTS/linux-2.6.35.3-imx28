@@ -735,7 +735,7 @@ static struct resource mmc1_resource[] = {
 };
 
 #if defined(CONFIG_MACH_TS7400)
-static void __init mx28_init_mmc(int is7670)
+static void __init mx28_init_mmc(int boardid)
 #else
 static void __init mx28_init_mmc(void)
 #endif
@@ -752,7 +752,7 @@ static void __init mx28_init_mmc(void)
 		mxs_add_device(pdev, 2);
 	}
 #if defined(CONFIG_MACH_TS7400)
-	if(is7670) {
+	if(boardid) {
 #endif
 	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
 		pdev = mxs_get_device("mxs-mmc", 1);
@@ -771,7 +771,7 @@ static void __init mx28_init_mmc(void)
 
 #else
 #if defined(CONFIG_MACH_TS7400)
-static void mx28_init_mmc(int is7670)
+static void mx28_init_mmc(int boardid)
 #else
 static void mx28_init_mmc(void)
 #endif
@@ -1814,7 +1814,7 @@ static void mx28_init_otp(void)
 #endif
 
 #if defined(CONFIG_MACH_TS7400)
-int __init mx28_device_init(is7670) {
+int __init mx28_device_init(boardid) {
 #else
 int __init mx28_device_init(void) {
 #endif
@@ -1826,8 +1826,8 @@ int __init mx28_device_init(void) {
 	mx28_init_lradc();
 	mx28_init_auart();
 #if defined(CONFIG_MACH_TS7400)
-	mx28_init_mmc(is7670);
-	if(!is7670) mx28_init_spi();
+	mx28_init_mmc(boardid);
+	if(!boardid) mx28_init_spi();
 #else
 	mx28_init_mmc();
 	mx28_init_spi();

@@ -1397,7 +1397,7 @@ static int __init mxs_mmc_probe(struct platform_device *pdev)
 		mmc->max_seg_size = SSP_BUFFER_SIZE - 512;
 	}
 
-	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
 
 	platform_set_drvdata(pdev, mmc);
 
