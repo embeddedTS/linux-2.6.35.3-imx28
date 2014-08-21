@@ -130,11 +130,12 @@ static struct pin_desc ts7670_pins[] = {
          .pull          = 1,       
          },                        
 	{
-	 .name          = "WIFI IRQ",
+	 .name          = "gpio",
 	 .id            = PINID_LCD_D22,
 	 .fun           = PIN_GPIO,
 	 .strength      = PAD_8MA,
 	 .voltage       = PAD_1_8V,
+	 .drive         = 1,
 	 .output        = 0,
 	 },
 
@@ -249,7 +250,7 @@ static struct pin_desc common_pins[] = {
 	 .fun	= PIN_FUN1,
 	 },
 #endif
-#ifdef CONFIG_MXS_AUART2_DEVICE_ENABLE
+/*#ifdef CONFIG_MXS_AUART2_DEVICE_ENABLE
 	{
 	 .name	= "AUART2.RX",
 	 .id	= PINID_SSP2_SCK,
@@ -273,7 +274,7 @@ static struct pin_desc common_pins[] = {
 	 .fun   = PIN_FUN2,
 	 },
 #endif
-
+*/
 #if defined(CONFIG_CAN_FLEXCAN) || defined(CONFIG_CAN_FLEXCAN_MODULE)
 	{
 	 .name	= "CAN1_TX",
@@ -316,7 +317,7 @@ static struct pin_desc common_pins[] = {
 	 .pull 		= 0,
 	 },
 	{
-	 .name	= "CAN_PWDN",
+	 .name	= "gpio",
 	 .id	= PINID_SSP1_CMD,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
@@ -422,7 +423,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* ETH_PWR# */
 	{
-	 .name	= "GPMI_RDY1",
+	 .name	= "gpio",
 	 .id	        = PINID_GPMI_RDY1,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -433,7 +434,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* ETH_RST# */
 	{
-	 .name	= "SSP0_DETECT",
+	 .name	= "gpio",
 	 .id	        = PINID_SSP0_DETECT,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -444,7 +445,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* USB power */
 	{
-	 .name	= "LCD_EN",
+	 .name	= "gpio",
 	 .id	        = PINID_LCD_CS,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -721,23 +722,23 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 static struct pin_desc mx28evk_spi_pins[] = {
 	{
 	 .name	= "SSP2 MOSI",
-	 .id	= PINID_SSP0_DATA6,
-	 .fun	= PIN_FUN2,
+	 .id	= PINID_SSP2_MOSI,
+	 .fun	= PIN_FUN1,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
 	{
 	 .name	= "SSP2 MISO",
-	 .id	= PINID_SSP0_DATA4,
-	 .fun	= PIN_FUN2,
+	 .id	= PINID_SSP2_MISO,
+	 .fun	= PIN_FUN1,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
 	{
 	 .name	= "SSP2 SCK",
-	 .id	= PINID_SSP0_DATA7,
+	 .id	= PINID_SSP2_SCK,
 	 .fun	= PIN_FUN2,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
@@ -745,20 +746,20 @@ static struct pin_desc mx28evk_spi_pins[] = {
 	 },
 	{
 	 .name	= "SSP2 SS0",
-	 .id	= PINID_SSP0_DATA5,
+	 .id	= PINID_SSP2_SS0,
 	 .fun	= PIN_FUN2,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
-	{
+	/*{
 	 .name	= "SSP2 SS1",
 	 .id	= PINID_SSP2_SS1,
 	 .fun	= PIN_FUN1,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
-	 },
+	 },*/
 };
 #endif
 
