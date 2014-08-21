@@ -250,7 +250,7 @@ static struct pin_desc common_pins[] = {
 	 .fun	= PIN_FUN1,
 	 },
 #endif
-/*#ifdef CONFIG_MXS_AUART2_DEVICE_ENABLE
+#ifdef CONFIG_MXS_AUART2_DEVICE_ENABLE
 	{
 	 .name	= "AUART2.RX",
 	 .id	= PINID_SSP2_SCK,
@@ -274,7 +274,7 @@ static struct pin_desc common_pins[] = {
 	 .fun   = PIN_FUN2,
 	 },
 #endif
-*/
+
 #if defined(CONFIG_CAN_FLEXCAN) || defined(CONFIG_CAN_FLEXCAN_MODULE)
 	{
 	 .name	= "CAN1_TX",
