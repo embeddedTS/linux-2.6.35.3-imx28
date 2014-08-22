@@ -515,12 +515,12 @@ static int mxs_mmc_hw_init_ssp0(void)
 
 	gpio_set_value(MMC0_WP, 0);
 	gpio_direction_input(MMC0_WP);
+#endif
 	/* Configure POWER pin as gpio to drive power to MMC slot */
 	ret = gpio_request(MMC0_POWER, "mmc0_power");
 	if (ret)
 		goto out_power;
 
-#endif
 
 	gpio_direction_output(MMC0_POWER, 0);
 	mdelay(100);
@@ -739,6 +739,7 @@ static struct resource mmc1_resource[] = {
 	},
 };
 
+#define WIFI_INT	MXS_PIN_TO_GPIO(PINID_LCD_D22)
 #if defined(CONFIG_MACH_TS7400)
 static void __init mx28_init_mmc(int boardid)
 #else
@@ -760,28 +761,31 @@ static void __init mx28_init_mmc(void)
 #if defined(CONFIG_MACH_TS7400) 
 	if(boardid) {
 #endif
-#define WIFI_INT	MXS_PIN_TO_GPIO(PINID_LCD_D22)
-	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
-		pdev = mxs_get_device("mxs-mmc", 1);
-		if (pdev == NULL || IS_ERR(pdev))
-			return;
-		pdev->resource = mmc1_resource;
-		pdev->num_resources = ARRAY_SIZE(mmc1_resource);
-		pdev->dev.platform_data = &mmc1_data;
-		mxs_add_device(pdev, 2);
-	}
-        ret = wl12xx_set_platform_data(&wl1271_data);
-	gpio_request(WIFI_INT, "wifi_int");
-	__raw_writel((1 << 22) ,
-	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL1_SET);
-	__raw_writel((1 << 22),
-	  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL1_SET);
-
-
-        if (ret)
-                pr_err("error setting wl12xx data: %d\n", ret);
+		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+			pdev = mxs_get_device("mxs-mmc", 1);
+			if (pdev == NULL || IS_ERR(pdev))
+				return;
+			pdev->resource = mmc1_resource;
+			pdev->num_resources = ARRAY_SIZE(mmc1_resource);
+			pdev->dev.platform_data = &mmc1_data;
+			mxs_add_device(pdev, 2);
+		}
 	
 #if defined(CONFIG_MACH_TS7400)
+
+		if(boardid == 0x2) /* 7680 */
+		{
+			ret = wl12xx_set_platform_data(&wl1271_data);
+			gpio_request(WIFI_INT, "wifi_int");
+			__raw_writel((1 << 22) ,
+			  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL1_SET);
+			__raw_writel((1 << 22),
+			  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL1_SET);
+	
+			if (ret)
+			  pr_err("error setting wl12xx data: %d\n", ret);
+		}
+	
 	}
 #endif
 }
@@ -1844,7 +1848,7 @@ int __init mx28_device_init(void) {
 	mx28_init_auart();
 #if defined(CONFIG_MACH_TS7400)
 	mx28_init_mmc(boardid);
-	//if(!boardid) mx28_init_spi();
+	if(!boardid) mx28_init_spi();
 #else
 	mx28_init_mmc();
 	mx28_init_spi();

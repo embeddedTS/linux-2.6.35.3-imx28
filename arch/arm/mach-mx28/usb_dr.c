@@ -45,6 +45,7 @@ static struct platform_device *otg_host_pdev;
 /* Beginning of Common operation for DR port */
 void fsl_phy_usb_utmi_init(struct fsl_xcvr_ops *this)
 {
+	gpio_request(MXS_PIN_TO_GPIO(PINID_AUART2_TX), "unused");
 }
 
 void fsl_phy_usb_utmi_uninit(struct fsl_xcvr_ops *this)
