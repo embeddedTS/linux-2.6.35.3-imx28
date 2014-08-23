@@ -27,9 +27,10 @@ sudo mount /dev/$1 mount_point/ &&\
 ) &&\
 
 (
-  cd compat-wireless-3.6.8-1 &&\
+  cd compat-drivers-3.8.3-2-snpu &&\
   echo "Installing external wireless modules to device $1"
-  KMODDIR_ARG="updates" KLIB=mount_point/ KMODPATH_ARG="INSTALL_MOD_PATH=mount_point" sudo -E make install >/dev/null 2>&1
+  KLIB_BUILD=`pwd`/../ ARCH=arm CROSS_COMPILE=`pwd`/../cross-toolchain/arm-fsl-linux-gnueabi/bin/arm-linux- INSTALL_MOD_PATH=mount_point/ sudo -E make install-modules
+
   if [ $? -ne "0" ] ; then
     echo "Failed to install external wireless modules to device $1"
     exit 1
