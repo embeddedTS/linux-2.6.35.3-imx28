@@ -28,14 +28,14 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/sdio_ids.h>
 #include <linux/mmc/card.h>
-#include <plat/gpio.h>
+#include <asm/gpio.h>
 
 #include "wl1271.h"
 #include "wl12xx_80211.h"
 #include "wl1271_io.h"
 
 
-#define RX71_WL1271_IRQ_GPIO		42
+#define RX71_WL1271_IRQ_GPIO		54
 
 #ifndef SDIO_VENDOR_ID_TI
 #define SDIO_VENDOR_ID_TI		0x0097
@@ -210,13 +210,13 @@ static int __devinit wl1271_probe(struct sdio_func *func,
 		goto out_free;
 	}
 
+	set_irq_type(wl->irq, IRQ_TYPE_EDGE_RISING);
+
 	ret = request_irq(wl->irq, wl1271_irq, 0, DRIVER_NAME, wl);
 	if (ret < 0) {
 		wl1271_error("request_irq() failed: %d", ret);
 		goto out_free;
 	}
-
-	set_irq_type(wl->irq, IRQ_TYPE_EDGE_RISING);
 
 	disable_irq(wl->irq);
 

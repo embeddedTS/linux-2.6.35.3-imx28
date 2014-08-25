@@ -200,16 +200,26 @@ static int __init get_M0_id(void) {
 	iounmap(dio);
 	release_mem_region(0x80018000, 4095);
 
-	return (ret & 0x1);
+	return (ret & 0xf);
 }
 
 		
 static void __init mx28evk_init_machine(void)
 {
-	int is7670;
+	int boardid;
 
-	is7670 = get_M0_id();
-	printk(KERN_INFO "boardID=%s\n", is7670 ? "7670" : "7400");
+	boardid = get_M0_id();
+	switch(boardid) {
+	  case 0x0:
+		printk(KERN_INFO "boardID=7400\n");
+		break;
+	  case 0x1:
+		printk(KERN_INFO "boardID=7670\n");
+		break;
+	  case 0x2:
+		printk(KERN_INFO "boardID=7680\n");
+		break;
+	}
 
 	mx28_pinctrl_init();
 	/* Init iram allocate */
@@ -221,12 +231,12 @@ static void __init mx28evk_init_machine(void)
 #endif
 
 	mx28_gpio_init();
-	mx28evk_pins_init(is7670);
-	mx28_device_init(is7670);
+	mx28evk_pins_init(boardid);
+	mx28_device_init(boardid);
 	mx28evk_device_init();
 }
 
-MACHINE_START(MX28EVK, "Technologic Systems TS-7400/TS-7670")
+MACHINE_START(MX28EVK, "Technologic Systems TS-7400/TS-7670/TS-7680")
 	.phys_io	= 0x80000000,
 	.io_pg_offst	= ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params	= 0x40000100,

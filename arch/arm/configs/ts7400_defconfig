@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Wed Feb 26 17:59:36 2014
+# Fri Aug 22 12:45:34 2014
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -642,6 +642,10 @@ CONFIG_MTD_CFI_I2=y
 #
 # Self-contained MTD device drivers
 #
+# CONFIG_MTD_DATAFLASH is not set
+# CONFIG_MTD_MXC_DATAFLASH is not set
+# CONFIG_MTD_M25P80 is not set
+# CONFIG_MTD_SST25L is not set
 # CONFIG_MTD_SLRAM is not set
 # CONFIG_MTD_PHRAM is not set
 # CONFIG_MTD_MTDRAM is not set
@@ -782,6 +786,7 @@ CONFIG_MII=y
 # CONFIG_AX88796 is not set
 # CONFIG_SMC91X is not set
 # CONFIG_DM9000 is not set
+# CONFIG_ENC28J60 is not set
 # CONFIG_ETHOC is not set
 # CONFIG_SMC911X is not set
 # CONFIG_SMSC911X is not set
@@ -795,6 +800,7 @@ CONFIG_MII=y
 # CONFIG_IBM_NEW_EMAC_MAL_COMMON_ERR is not set
 # CONFIG_B44 is not set
 # CONFIG_KS8842 is not set
+# CONFIG_KS8851 is not set
 # CONFIG_KS8851_MLL is not set
 CONFIG_FEC=y
 # CONFIG_FEC_1588 is not set
@@ -818,6 +824,7 @@ CONFIG_HOSTAP=m
 # CONFIG_P54_COMMON is not set
 # CONFIG_RT2X00 is not set
 # CONFIG_WL12XX is not set
+CONFIG_WL12XX_PLATFORM_DATA=y
 # CONFIG_ZD1211RW is not set
 # CONFIG_ATH6K_LEGACY is not set
 
@@ -921,6 +928,7 @@ CONFIG_N_HDLC=m
 CONFIG_SERIAL_MXS_DUART=y
 CONFIG_SERIAL_MXS_AUART=m
 CONFIG_SERIAL_MXS_DUART_CONSOLE=y
+# CONFIG_SERIAL_MAX3100 is not set
 CONFIG_SERIAL_CORE=y
 CONFIG_SERIAL_CORE_CONSOLE=y
 # CONFIG_SERIAL_TIMBERDALE is not set
@@ -976,7 +984,23 @@ CONFIG_I2C_MXS_SELECT0=y
 # CONFIG_I2C_DEBUG_CORE is not set
 # CONFIG_I2C_DEBUG_ALGO is not set
 # CONFIG_I2C_DEBUG_BUS is not set
-# CONFIG_SPI is not set
+CONFIG_SPI=y
+CONFIG_SPI_MASTER=y
+
+#
+# SPI Master Controller Drivers
+#
+# CONFIG_SPI_BITBANG is not set
+# CONFIG_SPI_GPIO is not set
+# CONFIG_SPI_XILINX is not set
+CONFIG_SPI_MXS=m
+# CONFIG_SPI_DESIGNWARE is not set
+
+#
+# SPI Protocol Masters
+#
+CONFIG_SPI_SPIDEV=m
+# CONFIG_SPI_TLE62X0 is not set
 
 #
 # PPS support
@@ -1007,6 +1031,9 @@ CONFIG_GPIOLIB=y
 #
 # SPI GPIO expanders:
 #
+# CONFIG_GPIO_MAX7301 is not set
+# CONFIG_GPIO_MCP23S08 is not set
+# CONFIG_GPIO_MC33880 is not set
 
 #
 # AC97 GPIO expanders:
@@ -1248,6 +1275,7 @@ CONFIG_MMC_BLOCK_BOUNCE=y
 # MMC/SD/SDIO Host Controller Drivers
 #
 # CONFIG_MMC_SDHCI is not set
+# CONFIG_MMC_SPI is not set
 # CONFIG_MMC_IMX_ESDHCI_PIO_MODE is not set
 CONFIG_MMC_MXS=y
 # CONFIG_MEMSTICK is not set
@@ -1262,6 +1290,7 @@ CONFIG_LEDS_CLASS=m
 # CONFIG_LEDS_GPIO is not set
 # CONFIG_LEDS_LP3944 is not set
 # CONFIG_LEDS_PCA955X is not set
+# CONFIG_LEDS_DAC124S085 is not set
 # CONFIG_LEDS_REGULATOR is not set
 # CONFIG_LEDS_BD2802 is not set
 # CONFIG_LEDS_LT3593 is not set
@@ -1644,7 +1673,7 @@ CONFIG_CRC16=y
 # CONFIG_CRC_T10DIF is not set
 CONFIG_CRC_ITU_T=y
 CONFIG_CRC32=y
-# CONFIG_CRC7 is not set
+CONFIG_CRC7=y
 # CONFIG_LIBCRC32C is not set
 CONFIG_ZLIB_INFLATE=y
 CONFIG_ZLIB_DEFLATE=y

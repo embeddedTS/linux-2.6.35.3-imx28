@@ -31,6 +31,7 @@
 #include <linux/fec.h>
 #include <linux/gpmi-nfc.h>
 #include <linux/fsl_devices.h>
+#include <linux/wl12xx.h>
 
 #include <asm/mach/map.h>
 
@@ -476,8 +477,12 @@ static void mx28_init_fpga_irq(void)
 {
 }
 #endif
-	
 
+static struct wl12xx_platform_data wl1271_data = {
+	.irq = 182,
+	.board_ref_clock = WL12XX_REFCLOCK_38,
+};
+	
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
@@ -510,12 +515,12 @@ static int mxs_mmc_hw_init_ssp0(void)
 
 	gpio_set_value(MMC0_WP, 0);
 	gpio_direction_input(MMC0_WP);
+#endif
 	/* Configure POWER pin as gpio to drive power to MMC slot */
 	ret = gpio_request(MMC0_POWER, "mmc0_power");
 	if (ret)
 		goto out_power;
 
-#endif
 
 	gpio_direction_output(MMC0_POWER, 0);
 	mdelay(100);
@@ -734,12 +739,14 @@ static struct resource mmc1_resource[] = {
 	},
 };
 
+#define WIFI_INT	MXS_PIN_TO_GPIO(PINID_LCD_D22)
 #if defined(CONFIG_MACH_TS7400)
-static void __init mx28_init_mmc(int is7670)
+static void __init mx28_init_mmc(int boardid)
 #else
 static void __init mx28_init_mmc(void)
 #endif
 {
+	int ret;
 	struct platform_device *pdev;
 
 	if (mxs_get_type(PINID_SSP0_CMD) == PIN_FUN1) {
@@ -751,27 +758,41 @@ static void __init mx28_init_mmc(void)
 		pdev->dev.platform_data = &mmc0_data;
 		mxs_add_device(pdev, 2);
 	}
-#if defined(CONFIG_MACH_TS7400)
-	if(is7670) {
+#if defined(CONFIG_MACH_TS7400) 
+	if(boardid) {
 #endif
-	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
-		pdev = mxs_get_device("mxs-mmc", 1);
-		if (pdev == NULL || IS_ERR(pdev))
-			return;
-		pdev->resource = mmc1_resource;
-		pdev->num_resources = ARRAY_SIZE(mmc1_resource);
-		pdev->dev.platform_data = &mmc1_data;
-		mxs_add_device(pdev, 2);
-	}
+		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+			pdev = mxs_get_device("mxs-mmc", 1);
+			if (pdev == NULL || IS_ERR(pdev))
+				return;
+			pdev->resource = mmc1_resource;
+			pdev->num_resources = ARRAY_SIZE(mmc1_resource);
+			pdev->dev.platform_data = &mmc1_data;
+			mxs_add_device(pdev, 2);
+		}
+	
 #if defined(CONFIG_MACH_TS7400)
-	}
-#endif
 
+		if(boardid == 0x2) /* 7680 */
+		{
+			ret = wl12xx_set_platform_data(&wl1271_data);
+			gpio_request(WIFI_INT, "wifi_int");
+			__raw_writel((1 << 22) ,
+			  REGS_PINCTRL_BASE + HW_PINCTRL_IRQLEVEL1_SET);
+			__raw_writel((1 << 22),
+			  REGS_PINCTRL_BASE + HW_PINCTRL_IRQPOL1_SET);
+	
+			if (ret)
+			  pr_err("error setting wl12xx data: %d\n", ret);
+		}
+	
+	}
+#endif
 }
 
 #else
 #if defined(CONFIG_MACH_TS7400)
-static void mx28_init_mmc(int is7670)
+static void mx28_init_mmc(int boardid)
 #else
 static void mx28_init_mmc(void)
 #endif
@@ -1814,7 +1835,7 @@ static void mx28_init_otp(void)
 #endif
 
 #if defined(CONFIG_MACH_TS7400)
-int __init mx28_device_init(is7670) {
+int __init mx28_device_init(boardid) {
 #else
 int __init mx28_device_init(void) {
 #endif
@@ -1826,8 +1847,8 @@ int __init mx28_device_init(void) {
 	mx28_init_lradc();
 	mx28_init_auart();
 #if defined(CONFIG_MACH_TS7400)
-	mx28_init_mmc(is7670);
-	if(!is7670) mx28_init_spi();
+	mx28_init_mmc(boardid);
+	if(!boardid) mx28_init_spi();
 #else
 	mx28_init_mmc();
 	mx28_init_spi();

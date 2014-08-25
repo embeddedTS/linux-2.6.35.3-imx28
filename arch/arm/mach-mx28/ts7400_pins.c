@@ -27,6 +27,144 @@
 
 #include "mx28_pins.h"
 
+static struct pin_desc ts7680_mmcwifi[] = {
+	{
+	 .name  = "SSP2_SCK",
+	 .id    = PINID_SSP0_DATA7,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_12MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 0,
+	 .drive         = 1,
+	 .pull          = 0,
+	},
+	{
+	 .name  = "SSP2_CMD",
+	 .id    = PINID_SSP0_DATA6,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA0",
+	 .id    = PINID_SSP0_DATA4,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA1",
+	 .id    = PINID_SSP2_SS1,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA2",
+	 .id    = PINID_SSP2_SS2,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA3",
+	 .id    = PINID_SSP0_DATA5,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+
+	/* WIFI IRQ pin */
+	{
+	 .name          = "gpio",
+	 .id            = PINID_LCD_D22,
+	 .fun           = PIN_GPIO,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_1_8V,
+	 .drive         = 1,
+	 .output        = 0,
+	},
+};
+
+static struct pin_desc sd2spi_pins[] = {
+	/* On 7400-V2 this is SPI, on 7670 its SD */
+	{
+	 .name  = "SSP2_SCK",
+	 .id    = PINID_SSP0_DATA7,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_12MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 0,
+	 .drive         = 1,
+	 .pull          = 0,
+	},
+	{
+	 .name  = "SSP2_CMD",
+	 .id    = PINID_SSP0_DATA6,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA0",
+	 .id    = PINID_SSP0_DATA4,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA1",
+	 .id    = PINID_SSP2_SS1,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA2",
+	 .id    = PINID_SSP2_SS2,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+	{
+	 .name  = "SSP2_DATA3",
+	 .id    = PINID_SSP0_DATA5,
+	 .fun   = PIN_FUN2,
+	 .strength      = PAD_8MA,
+	 .voltage       = PAD_3_3V,
+	 .pullup        = 1,
+	 .drive         = 1,
+	 .pull          = 1,
+	},
+};
+
 static struct pin_desc ts7670_pins[] = {
 	{
 	 .name 	= "BLUE_LED",
@@ -66,69 +204,6 @@ static struct pin_desc ts7670_pins[] = {
 	 .id	= PINID_SAIF0_BITCLK,
 	 .fun	= PIN_FUN3,
 	 },
-#endif
-
-#if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
-        {                          
-         .name  = "SSP2_SCK",      
-         .id    = PINID_SSP0_DATA7,
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_12MA,
-         .voltage       = PAD_3_3V,
-         .pullup        = 0,
-         .drive         = 1,
-         .pull          = 0,       
-         },                        
-        {                          
-         .name  = "SSP2_CMD",      
-         .id    = PINID_SSP0_DATA6,
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
-         .pullup        = 1,       
-         .drive         = 1,       
-         .pull          = 1,       
-         },                        
-        {                          
-         .name  = "SSP2_DATA0",    
-         .id    = PINID_SSP0_DATA4,
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
-         .pullup        = 1,       
-         .drive         = 1,       
-         .pull          = 1,       
-         },                        
-        {                          
-         .name  = "SSP2_DATA1",    
-         .id    = PINID_SSP2_SS1,  
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
-         .pullup        = 1,       
-         .drive         = 1,       
-         .pull          = 1,       
-         },                        
-        {                          
-         .name  = "SSP2_DATA2",    
-         .id    = PINID_SSP2_SS2,  
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
-         .pullup        = 1,       
-         .drive         = 1,       
-         .pull          = 1,       
-         },                        
-        {                          
-         .name  = "SSP2_DATA3",    
-         .id    = PINID_SSP0_DATA5,
-         .fun   = PIN_FUN2,        
-         .strength      = PAD_8MA, 
-         .voltage       = PAD_3_3V,
-         .pullup        = 1,       
-         .drive         = 1,       
-         .pull          = 1,       
-         },                        
 #endif
 
 };
@@ -187,8 +262,6 @@ static struct pin_desc ts7400_pins[] = {
 	 .pull 		= 1,
 	 },
 #endif
-
-
 };
 
 static struct pin_desc common_pins[] = {
@@ -228,6 +301,7 @@ static struct pin_desc common_pins[] = {
 	 .fun   = PIN_FUN1,
 	 },
 #endif
+
 #ifdef CONFIG_MXS_AUART1_DEVICE_ENABLE
 	{
 	 .name	= "AUART1.RX",
@@ -307,7 +381,7 @@ static struct pin_desc common_pins[] = {
 	 .pull 		= 0,
 	 },
 	{
-	 .name	= "CAN_PWDN",
+	 .name	= "gpio",
 	 .id	= PINID_SSP1_CMD,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
@@ -323,7 +397,7 @@ static struct pin_desc common_pins[] = {
 
 #if defined(CONFIG_I2C_MXS) || \
 	defined(CONFIG_I2C_MXS_MODULE)
-	{
+{
 	 .name = "I2C0_SCL",
 	 .id = PINID_I2C0_SCL,
 	 .fun = PIN_FUN1,
@@ -402,6 +476,8 @@ static struct pin_desc common_pins[] = {
 	 .drive 	= 1,
 	 .pull 		= 1,
 	 },
+
+
 #endif
 	{
 	 .name = "FPGA_CLK",
@@ -413,7 +489,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* ETH_PWR# */
 	{
-	 .name	= "GPMI_RDY1",
+	 .name	= "gpio",
 	 .id	        = PINID_GPMI_RDY1,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -424,7 +500,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* ETH_RST# */
 	{
-	 .name	= "SSP0_DETECT",
+	 .name	= "gpio",
 	 .id	        = PINID_SSP0_DETECT,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -435,7 +511,7 @@ static struct pin_desc common_pins[] = {
 	 },
 	/* USB power */
 	{
-	 .name	= "LCD_EN",
+	 .name	= "gpio",
 	 .id	        = PINID_LCD_CS,
 	 .fun	        = PIN_GPIO,
 	 .strength	= PAD_8MA,
@@ -708,27 +784,27 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 },*/
 };
 
-#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
+#if 0
 static struct pin_desc mx28evk_spi_pins[] = {
 	{
 	 .name	= "SSP2 MOSI",
-	 .id	= PINID_SSP0_DATA6,
-	 .fun	= PIN_FUN2,
+	 .id	= PINID_SSP2_MOSI,
+	 .fun	= PIN_FUN1,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
 	{
 	 .name	= "SSP2 MISO",
-	 .id	= PINID_SSP0_DATA4,
-	 .fun	= PIN_FUN2,
+	 .id	= PINID_SSP2_MISO,
+	 .fun	= PIN_FUN1,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
 	{
 	 .name	= "SSP2 SCK",
-	 .id	= PINID_SSP0_DATA7,
+	 .id	= PINID_SSP2_SCK,
 	 .fun	= PIN_FUN2,
 	 .strength	= PAD_4MA,
 	 .voltage	= PAD_3_3V,
@@ -736,20 +812,20 @@ static struct pin_desc mx28evk_spi_pins[] = {
 	 },
 	{
 	 .name	= "SSP2 SS0",
-	 .id	= PINID_SSP0_DATA5,
+	 .id	= PINID_SSP2_SS0,
 	 .fun	= PIN_FUN2,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
-	{
+	/*{
 	 .name	= "SSP2 SS1",
 	 .id	= PINID_SSP2_SS1,
 	 .fun	= PIN_FUN1,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
-	 },
+	 },*/
 };
 #endif
 
@@ -843,18 +919,24 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 	}
 }
 
-void __init mx28evk_pins_init(int is7670)
+void __init mx28evk_pins_init(int boardid)
 {
-	if(is7670) {
+	if(boardid) {
 		mx28evk_init_pin_group(ts7670_pins,
 		  ARRAY_SIZE(ts7670_pins));
+
+		if(boardid == 0x2) 
+		  mx28evk_init_pin_group(ts7680_mmcwifi,
+		    ARRAY_SIZE(ts7680_mmcwifi));
+		else
+		  mx28evk_init_pin_group(sd2spi_pins,
+		    ARRAY_SIZE(sd2spi_pins));
+		
 	} else {
 		mx28evk_init_pin_group(ts7400_pins,
 		  ARRAY_SIZE(ts7400_pins));
-#if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
-		mx28evk_init_pin_group(mx28evk_spi_pins,
-		  ARRAY_SIZE(mx28evk_spi_pins));
-#endif
+		mx28evk_init_pin_group(sd2spi_pins,
+		  ARRAY_SIZE(sd2spi_pins));
 	}
 	mx28evk_init_pin_group(common_pins,
 	  ARRAY_SIZE(common_pins));

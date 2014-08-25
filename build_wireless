@@ -2,10 +2,9 @@
 
 echo "Building external wireless modules (this will take some time)"
 (
-cd compat-wireless-3.6.8-1/ &&\
+cd compat-drivers-3.8.3-2-snpu/ &&\
 (
-  ./scripts/driver-select ts >/dev/null 2>&1 &&\
-  make >/dev/null 2>&1
+  KLIB_BUILD=`pwd`/.. ARCH=arm CROSS_COMPILE=`pwd`/../cross-toolchain/arm-fsl-linux-gnueabi/bin/arm-linux- make -j2 >/dev/null 2>&1
   if [ $? -ne "0" ] ; then
     echo "Failed to build external wireless modules"
     echo "Run 'make' from compat-wireless-3.6.8-1/ to see full output"
