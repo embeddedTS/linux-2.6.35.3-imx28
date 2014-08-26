@@ -29,18 +29,28 @@ sudo mount /dev/$1 mount_point/ &&\
 (
   cd compat-drivers-3.8.3-2-snpu &&\
   echo "Installing external wireless modules to device $1"
-  KLIB_BUILD=`pwd`/../ ARCH=arm CROSS_COMPILE=`pwd`/../cross-toolchain/arm-fsl-linux-gnueabi/bin/arm-linux- INSTALL_MOD_PATH=mount_point/ sudo -E make install-modules
+  KLIB_BUILD=`pwd`/../ ARCH=arm CROSS_COMPILE=`pwd`/../cross-toolchain/arm-fsl-linux-gnueabi/bin/arm-linux- INSTALL_MOD_PATH=mount_point/ sudo -E make install-modules >/dev/null 2>&1
 
   if [ $? -ne "0" ] ; then
     echo "Failed to install external wireless modules to device $1"
     exit 1
   fi
-)
+) &&\
+
 (
   echo "Copying SPI and NAND bootstreams to device $1"
   sudo -E cp imx-bootlets-src-10.12.01/imx28_ivt_linux.s* mount_point/lib/modules/
   if [ $? -ne "0" ] ; then
     echo "Failed to failed to copy bootstream files to device $1"
+    exit 1
+  fi
+) &&\
+
+(
+  echo "Copying U-Boot kernel to device $1"
+  sudo -E cp arch/arm/boot/uImage mount_point/boot
+  if [ $? -ne "0" ] ; then
+    echo "Failed to failed to copy U-Boot kernel to device $1"
     exit 1
   fi
 )
