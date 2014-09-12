@@ -99,6 +99,28 @@ static struct pin_desc ts7680_mmcwifi[] = {
 	 .drive         = 1,
 	 .output        = 0,
 	},
+
+	/* CTS/RTS on the 7680 are i2c-gpio */
+	{
+	 .name  = "gpio",
+	 .id    = PINID_AUART0_CTS,
+	 .fun   = PIN_GPIO,
+	 .drive = 1,
+	 .pull  = 0,
+	 .output = 0,
+	 .data  = 0,
+	 },
+	{
+	 .name  = "gpio",
+	 .id    = PINID_AUART0_RTS,
+	 .fun   = PIN_GPIO,
+	 .drive = 1,
+	 .pull  = 0,
+	 .output = 0,
+	 .data  = 0,
+	 },
+
+
 };
 
 static struct pin_desc sd2spi_pins[] = {
@@ -185,12 +207,12 @@ static struct pin_desc ts7670_pins[] = {
 	 .name  = "AUART0.CTS",
 	 .id    = PINID_AUART0_CTS,
 	 .fun   = PIN_FUN1,
-	 },
+	},
 	{
 	 .name  = "AUART0.RTS",
 	 .id    = PINID_AUART0_RTS,
 	 .fun   = PIN_FUN1,
-	 },
+	}, 
 #endif
 
 #ifdef CONFIG_MXS_AUART4_DEVICE_ENABLE
@@ -922,6 +944,9 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 void __init mx28evk_pins_init(int boardid)
 {
 	if(boardid) {
+		/*XXX: ts7670_pins must come before ts7680_mmcwifi
+		 * ts7680_mmcwifi sets up GPIO I2C pins
+		 */
 		mx28evk_init_pin_group(ts7670_pins,
 		  ARRAY_SIZE(ts7670_pins));
 

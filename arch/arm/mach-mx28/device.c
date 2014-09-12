@@ -32,6 +32,7 @@
 #include <linux/gpmi-nfc.h>
 #include <linux/fsl_devices.h>
 #include <linux/wl12xx.h>
+#include <linux/i2c-gpio.h>
 
 #include <asm/mach/map.h>
 
@@ -243,6 +244,24 @@ static void __init mx28_init_viim(void)
 
 #if defined(CONFIG_I2C_MXS) || \
 	defined(CONFIG_I2C_MXS_MODULE)
+struct i2c_gpio_platform_data fpga_i2c_gpio = {
+	.sda_pin = MXS_PIN_TO_GPIO(PINID_AUART0_CTS),
+	.scl_pin = MXS_PIN_TO_GPIO(PINID_AUART0_RTS),
+	.udelay  = 167,
+	.timeout = 1000,
+	.sda_is_open_drain = 1,
+	.scl_is_open_drain = 1,
+	.scl_is_output_only = 0,
+};
+
+static struct platform_device i2c_gpio = {
+	.name		= "i2c-gpio",
+	.id		= 1,
+	.dev = {
+		.platform_data = &fpga_i2c_gpio,
+	}
+};
+
 #ifdef	CONFIG_I2C_MXS_SELECT0
 static struct resource i2c0_resource[] = {
 	{
@@ -305,11 +324,21 @@ static struct mxs_i2c_plat_data i2c1_platdata = {
 };
 #endif
 
+#if defined(CONFIG_MACH_TS7400)
+static void __init mx28_init_i2c(boardid)
+#else
 static void __init mx28_init_i2c(void)
+#endif
 {
 	int i;
 	struct mxs_dev_lookup *lookup;
 	struct platform_device *pdev;
+
+#if defined(CONFIG_MACH_TS7400)
+	if(boardid == 0x2) { //7680
+		platform_device_register(&i2c_gpio);
+	}
+#endif
 
 	lookup = mxs_get_devices("mxs-i2c");
 	if (lookup == NULL || IS_ERR(lookup))
@@ -338,7 +367,11 @@ static void __init mx28_init_i2c(void)
 	}
 }
 #else
+#if defined(CONFIG_MACH_TS7400)
+static void __init mx28_init_i2c(boardid)
+#else
 static void __init mx28_init_i2c(void)
+#endif
 {
 }
 #endif
@@ -1843,13 +1876,14 @@ int __init mx28_device_init(void) {
 	mx28_init_dma();
 	mx28_init_viim();
 	mx28_init_duart();
-	mx28_init_i2c();
 	mx28_init_lradc();
 	mx28_init_auart();
 #if defined(CONFIG_MACH_TS7400)
+	mx28_init_i2c(boardid);
 	mx28_init_mmc(boardid);
 	if(!boardid) mx28_init_spi();
 #else
+	mx28_init_i2c();
 	mx28_init_mmc();
 	mx28_init_spi();
 #endif
