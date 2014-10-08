@@ -522,9 +522,10 @@ static struct pin_desc common_pins[] = {
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .pullup	= 1,
-	 .drive 	= 1,
 	 .pull 		= 1,
-	 .drive		= 1,
+	 .drive 	= 1,
+	 .output	= 1,
+	 .data		= 1,
 	 },
 };
 
