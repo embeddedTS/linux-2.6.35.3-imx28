@@ -47,11 +47,15 @@ sudo mount /dev/$1 mount_point/ &&\
 ) &&\
 
 (
-  echo "Copying U-Boot kernel to device $1"
-  sudo -E cp arch/arm/boot/uImage mount_point/boot
-  if [ $? -ne "0" ] ; then
-    echo "Failed to failed to copy U-Boot kernel to device $1"
-    exit 1
+  if [ -e arch/arm/boot/uImage ] ; then
+    echo "Copying U-Boot kernel to device $1"
+    sudo -E cp arch/arm/boot/uImage mount_point/boot
+    if [ $? -ne "0" ] ; then
+      echo "Failed to failed to copy U-Boot kernel to device $1"
+      exit 1
+    fi
+  else
+    echo "U-Boot kernel does not exist, skipping"
   fi
 )
 
