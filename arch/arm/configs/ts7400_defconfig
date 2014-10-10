@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Thu Sep 18 17:28:14 2014
+# Thu Oct  9 10:49:06 2014
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -857,8 +857,17 @@ CONFIG_USB_NET_SMSC95XX=m
 # CONFIG_USB_IPHETH is not set
 # CONFIG_USB_SIERRA_NET is not set
 # CONFIG_WAN is not set
-# CONFIG_PPP is not set
+CONFIG_PPP=m
+# CONFIG_PPP_MULTILINK is not set
+# CONFIG_PPP_FILTER is not set
+CONFIG_PPP_ASYNC=m
+CONFIG_PPP_SYNC_TTY=m
+CONFIG_PPP_DEFLATE=m
+CONFIG_PPP_BSDCOMP=m
+# CONFIG_PPP_MPPE is not set
+# CONFIG_PPPOE is not set
 # CONFIG_SLIP is not set
+CONFIG_SLHC=m
 # CONFIG_NETCONSOLE is not set
 # CONFIG_NETPOLL is not set
 # CONFIG_NET_POLL_CONTROLLER is not set
