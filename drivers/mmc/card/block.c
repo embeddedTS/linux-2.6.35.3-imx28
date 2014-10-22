@@ -481,6 +481,7 @@ static struct mmc_blk_data *mmc_blk_alloc(struct mmc_card *card)
 {
 	struct mmc_blk_data *md;
 	int devidx, ret;
+	struct mmc_host *host;
 
 	devidx = find_first_zero_bit(dev_use, MMC_NUM_MINORS);
 	if (devidx >= MMC_NUM_MINORS)
@@ -535,7 +536,31 @@ static struct mmc_blk_data *mmc_blk_alloc(struct mmc_card *card)
 	 * messages to tell when the card is present.
 	 */
 
-	sprintf(md->disk->disk_name, "mmcblk%d", devidx);
+	/* Instead of the normal allocation process of first come
+	 * first serve, the following lines give a specific priority 
+	 * to MMC/SD devices on MXS CPUs, specifically for the i.MX28.
+	 * This ordering allows TS products to remain consistent every 
+	 * boot, even if not all devices are present, or different devices
+	 * are used as the boot source.
+	 *
+	 * This function wal also modified to use snprintf instead of sprintf.
+	 */
+
+	host = mmc_priv(card->host);
+
+	if(strstr(dev_name(host->parent), "mxs-mmc.0")) {
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name), 
+		  "mmcblk0");
+	} else if(strstr(dev_name(host->parent), "mxs-mmc.2")) {
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name), 
+		  "mmcblk1");
+	} else if(strstr(dev_name(host->parent), "mxs-mmc.1")) {
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name), 
+		  "mmcblk2");
+	} else {
+		snprintf(md->disk->disk_name, sizeof(md->disk->disk_name),
+		  "mmcblk%d", devidx);
+	}
 
 	blk_queue_logical_block_size(md->queue.queue, 512);
 
