@@ -325,7 +325,7 @@ static struct mxs_i2c_plat_data i2c1_platdata = {
 #endif
 
 #if defined(CONFIG_MACH_TS7400)
-static void __init mx28_init_i2c(boardid)
+static void __init mx28_init_i2c(int boardid)
 #else
 static void __init mx28_init_i2c(void)
 #endif
@@ -518,9 +518,6 @@ static struct wl12xx_platform_data wl1271_data = {
 	
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #define MMC_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
-#define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
-
 
 static int ts_mmc_get_wp(void)
 {
@@ -768,6 +765,7 @@ static void __init mx28_init_mmc(void)
 			pdev->dev.platform_data = &mmc1_data;
 			mxs_add_device(pdev, 2);
 		}
+
 		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
 			pdev = mxs_get_device("mxs-mmc", 2);
 			if (pdev == NULL || IS_ERR(pdev))
@@ -926,26 +924,8 @@ static struct resource fec0_resource[] = {
 	},
 };
 
-static struct resource fec1_resource[] = {
-	{
-		.start  = ENET_PHYS_ADDR + 0x4000,
-		.end    = ENET_PHYS_ADDR + 0x7fff,
-		.flags  = IORESOURCE_MEM
-	},
-	{
-		.start  = IRQ_ENET_MAC1,
-		.end    = IRQ_ENET_MAC1,
-		.flags  = IORESOURCE_IRQ
-	},
-};
-
 extern int mx28evk_enet_gpio_init(void);
 static struct fec_platform_data fec_pdata0 = {
-	.phy = PHY_INTERFACE_MODE_RMII,
-	.init = mx28evk_enet_gpio_init,
-};
-
-static struct fec_platform_data fec_pdata1 = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 	.init = mx28evk_enet_gpio_init,
 };
@@ -955,7 +935,6 @@ static void __init mx28_init_fec(void)
 	struct platform_device *pdev;
 	struct mxs_dev_lookup *lookup;
 	struct fec_platform_data *pfec;
-	int i;
 	u32 val;
 
 	__raw_writel(BM_OCOTP_CTRL_RD_BANK_OPEN,
@@ -1829,7 +1808,7 @@ int __init mx28_device_init(void) {
 	mx28_init_mmc();
 	mx28_init_spi();
 #endif
-	//mx28_init_gpmi_nfc();
+	mx28_init_gpmi_nfc();
 	mx28_init_wdt();
 	mx28_init_rtc();
 	mx28_init_fec();
