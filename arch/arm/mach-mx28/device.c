@@ -449,13 +449,15 @@ static void __init mx28_init_gpmi_nfc(void)
 {
 	struct platform_device  *pdev;
 
-	pdev = mxs_get_device(GPMI_NFC_DRIVER_NAME, 0);
-	if (pdev == NULL || IS_ERR(pdev))
-		return;
-	pdev->dev.platform_data = &gpmi_nfc_platform_data;
-	pdev->resource          =  gpmi_nfc_resources;
-	pdev->num_resources     = ARRAY_SIZE(gpmi_nfc_resources);
-	mxs_add_device(pdev, 1);
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		pdev = mxs_get_device(GPMI_NFC_DRIVER_NAME, 0);
+		if (pdev == NULL || IS_ERR(pdev))
+			return;
+		pdev->dev.platform_data = &gpmi_nfc_platform_data;
+		pdev->resource          =  gpmi_nfc_resources;
+		pdev->num_resources     = ARRAY_SIZE(gpmi_nfc_resources);
+		mxs_add_device(pdev, 1);
+	}
 }
 #else
 static void mx28_init_gpmi_nfc(void)

@@ -209,11 +209,26 @@ static void __init mx28evk_init_machine(void)
 	int boardid;
 
 	boardid = get_M0_id();
+	
+	/* The TS-7670 rev C was a major changeup in the TS-7670.
+	 * The difference is unknown by uC, and is only seen with a CPU 
+	 * strapping pin.  Rev C drops NAND and adds eMMC to SSP1, which
+	 * is bootable.
+	 */
+	if(boardid == 0x1) {
+		;//Check for strapping pin on 7670 C
+	}
+
 	switch(boardid) {
 	  case 0x0:
 		printk(KERN_INFO "boardID=7400\n");
 		break;
 	  case 0x1:
+	  case 0x3:
+		/* 3 is 7670 rev C+
+		 * Differentiation is needed for kernel purposes only.
+		 * Userspace shouldn't care
+		 */
 		printk(KERN_INFO "boardID=7670\n");
 		break;
 	  case 0x2:

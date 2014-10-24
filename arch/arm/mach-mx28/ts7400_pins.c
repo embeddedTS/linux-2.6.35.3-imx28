@@ -492,17 +492,6 @@ static struct pin_desc common_pins[] = {
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
 	 },
-	/* ETH_PWR# */
-	/*{
-	 .name	= "gpio",
-	 .id	        = PINID_GPMI_RDY1,
-	 .fun	        = PIN_GPIO,
-	 .strength	= PAD_8MA,
-	 .voltage	= PAD_3_3V,
-	 .pullup	= 1,
-	 .drive 	= 1,
-	 .pull 		= 1,
-	 },*/
 	/* ETH_RST# */
 	{
 	 .name	= "gpio",
@@ -625,16 +614,7 @@ static struct pin_desc mx28evk_eth_pins[] = {
 };
 #endif
 
-int enable_gpmi = { 1 };
-static int __init gpmi_setup(char *__unused)
-{
-	enable_gpmi = 1;
-	return 1;
-}
-
-__setup("gpmi", gpmi_setup);
-
-static struct pin_desc mx28evk_gpmi_pins[] = {
+static struct pin_desc ssp1_emmc_pins[] = {
 	{
 	 .name     = "GPMI D0",
 	 .id       = PINID_GPMI_D00,
@@ -666,6 +646,99 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .name     = "GPMI D3",
 	 .id       = PINID_GPMI_D03,
 	 .fun      = PIN_FUN2,
+	 .strength = PAD_4MA,
+	 .voltage  = PAD_3_3V,
+	 .pullup   = 0,
+	 .drive    = !0
+	 },
+	{
+	 .name     = "GPMI RDY1",
+	 .id       = PINID_GPMI_RDY1,
+	 .fun      = PIN_FUN2,
+	 .strength = PAD_4MA,
+	 .voltage  = PAD_3_3V,
+	 .pullup   = 0,
+	 .drive    = !0
+	 },
+	{
+	 .name     = "GPMI WR-",
+	 .id       = PINID_GPMI_WRN,
+	 .fun      = PIN_FUN2,
+	 .strength = PAD_12MA,
+	 .voltage  = PAD_3_3V,
+	 .pullup   = 0,
+	 .drive    = !0
+	 },
+	/* ETH_PWR# */
+	{
+	 .name	= "gpio",
+	 .id	        = PINID_LCD_D10,
+	 .fun	        = PIN_GPIO,
+	 .strength	= PAD_8MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+};
+
+int enable_gpmi = { 1 };
+static int __init gpmi_setup(char *__unused)
+{
+	enable_gpmi = 1;
+	return 1;
+}
+
+__setup("gpmi", gpmi_setup);
+
+static struct pin_desc mx28evk_gpmi_pins[] = {
+	/* The current assumption is that if the device is part of the 7400-v2
+	 * compatibility list, and has NAND, eth power will be on the std pin.
+	 * However if it is on that list, does not have NAND, it will be on a
+	 * different pin
+	 */
+	/* ETH_PWR# */
+	{
+	 .name	= "gpio",
+	 .id	        = PINID_GPMI_RDY1,
+	 .fun	        = PIN_GPIO,
+	 .strength	= PAD_8MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 1,
+	 .drive 	= 1,
+	 .pull 		= 1,
+	 },
+	{
+	 .name     = "GPMI D0",
+	 .id       = PINID_GPMI_D00,
+	 .fun      = PIN_FUN1,
+	 .strength = PAD_4MA,
+	 .voltage  = PAD_3_3V,
+	 .pullup   = 0,
+	 .drive    = !0
+	 },
+	{
+	.name     = "GPMI D1",
+	.id       = PINID_GPMI_D01,
+	.fun      = PIN_FUN1,
+	.strength = PAD_4MA,
+	.voltage  = PAD_3_3V,
+	.pullup   = 0,
+	.drive    = !0
+	 },
+	{
+	 .name     = "GPMI D2",
+	 .id       = PINID_GPMI_D02,
+	 .fun      = PIN_FUN1,
+	 .strength = PAD_4MA,
+	 .voltage  = PAD_3_3V,
+	 .pullup   = 0,
+	 .drive    = !0
+	 },
+	{
+	 .name     = "GPMI D3",
+	 .id       = PINID_GPMI_D03,
+	 .fun      = PIN_FUN1,
 	 .strength = PAD_4MA,
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
@@ -734,15 +807,15 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	 .pullup   = 0,
 	 .drive    = !0
 	 },
-	{
+	/*{
 	 .name     = "GPMI RDY1",
 	 .id       = PINID_GPMI_RDY1,
-	 .fun      = PIN_FUN2,
+	 .fun      = PIN_FUN1,
 	 .strength = PAD_4MA,
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
 	 .drive    = !0
-	 },
+	 },*/
 	{
 	 .name     = "GPMI RD-",
 	 .id       = PINID_GPMI_RDN,
@@ -755,7 +828,7 @@ static struct pin_desc mx28evk_gpmi_pins[] = {
 	{
 	 .name     = "GPMI WR-",
 	 .id       = PINID_GPMI_WRN,
-	 .fun      = PIN_FUN2,
+	 .fun      = PIN_FUN1,
 	 .strength = PAD_12MA,
 	 .voltage  = PAD_3_3V,
 	 .pullup   = 0,
@@ -841,8 +914,15 @@ static struct pin_desc mx28evk_spi_pins[] = {
 int mx28evk_enet_gpio_init(void)
 {
 	/* pwr */
-	//gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
+	} else if (mxs_get_type(PINID_LCD_D10) == PIN_GPIO) {
+		gpio_request(MXS_PIN_TO_GPIO(PINID_LCD_D10), "ENET_PWR");
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_LCD_D10), 0);
+	} else {
+		printk(KERN_ERR "Unable to determine correct EN_ENET_3.3V pin\n");
+	}
 
 	/* reset phy */
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
@@ -858,7 +938,13 @@ int mx28evk_enet_gpio_init(void)
 void mx28evk_enet_io_lowerpower_enter(void)
 {
 	int i;
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 1);
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 1);
+	} else if (mxs_get_type(PINID_LCD_D10) == PIN_GPIO) {
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_LCD_D10), 1);
+	} else {
+		printk(KERN_ERR "Unable to determine correct EN_ENET_3.3V pin\n");
+	}
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
 	//gpio_request(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), "ETH_INT");
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK), 0);
@@ -877,7 +963,13 @@ void mx28evk_enet_io_lowerpower_enter(void)
 void mx28evk_enet_io_lowerpower_exit(void)
 {
 	int i;
-	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
+	} else if (mxs_get_type(PINID_LCD_D10) == PIN_GPIO) {
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_LCD_D10), 0);
+	} else {
+		printk(KERN_ERR "Unable to determine correct EN_ENET_3.3V pin\n");
+	}
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
 	//gpio_free(MXS_PIN_TO_GPIO(PINID_ENET0_TX_CLK));
 	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_pins); i++) {
@@ -954,9 +1046,14 @@ void __init mx28evk_pins_init(int boardid)
 	  ARRAY_SIZE(common_pins));
 
 
-	mx28evk_init_pin_group(mx28evk_gpmi_pins,
-	  ARRAY_SIZE(mx28evk_gpmi_pins));
-
+	if(boardid == 0x3) {
+		mx28evk_init_pin_group(ssp1_emmc_pins,
+		  ARRAY_SIZE(ssp1_emmc_pins));
+	
+	} else {
+		mx28evk_init_pin_group(mx28evk_gpmi_pins,
+		  ARRAY_SIZE(mx28evk_gpmi_pins));
+	}
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
