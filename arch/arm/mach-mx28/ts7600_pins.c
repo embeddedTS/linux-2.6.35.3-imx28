@@ -542,6 +542,48 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull 		= 1,
 	},
 #endif
+#if defined(CONFIG_CAN_FLEXCAN) || defined(CONFIG_CAN_FLEXCAN_MODULE)
+	{
+	 .name	= "CAN1_TX",
+	 .id	= PINID_GPMI_CE2N,
+	 .fun	= PIN_FUN2,
+	 .strength	= PAD_4MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 0,
+	 .drive 	= 1,
+	 .pull 		= 0,
+	 },
+	{
+	 .name	= "CAN1_RX",
+	 .id	= PINID_GPMI_CE3N,
+	 .fun	= PIN_FUN2,
+	 .strength	= PAD_4MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 0,
+	 .drive 	= 1,
+	 .pull 		= 0,
+	 },
+	{
+	 .name	= "CAN0_TX",
+	 .id	= PINID_GPMI_RDY2,
+	 .fun	= PIN_FUN2,
+	 .strength	= PAD_4MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 0,
+	 .drive 	= 1,
+	 .pull 		= 0,
+	 },
+	{
+	 .name	= "CAN0_RX",
+	 .id	= PINID_GPMI_RDY3,
+	 .fun	= PIN_FUN2,
+	 .strength	= PAD_4MA,
+	 .voltage	= PAD_3_3V,
+	 .pullup	= 0,
+	 .drive 	= 1,
+	 .pull 		= 0,
+	 },
+#endif
 };
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
