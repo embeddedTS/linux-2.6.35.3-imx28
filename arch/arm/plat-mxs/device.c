@@ -173,6 +173,15 @@ static struct platform_device mxs_mmc[] = {
 		.release = mxs_nop_release,
 		},
 	 },
+	{
+	 .name	= "mxs-mmc",
+	 .id	= 2,
+	 .dev = {
+		.dma_mask	       = &common_dmamask,
+		.coherent_dma_mask      = DMA_BIT_MASK(32),
+		.release = mxs_nop_release,
+		},
+	 },
 };
 #endif
 

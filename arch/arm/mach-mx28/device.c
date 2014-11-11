@@ -325,7 +325,7 @@ static struct mxs_i2c_plat_data i2c1_platdata = {
 #endif
 
 #if defined(CONFIG_MACH_TS7400)
-static void __init mx28_init_i2c(boardid)
+static void __init mx28_init_i2c(int boardid)
 #else
 static void __init mx28_init_i2c(void)
 #endif
@@ -449,13 +449,15 @@ static void __init mx28_init_gpmi_nfc(void)
 {
 	struct platform_device  *pdev;
 
-	pdev = mxs_get_device(GPMI_NFC_DRIVER_NAME, 0);
-	if (pdev == NULL || IS_ERR(pdev))
-		return;
-	pdev->dev.platform_data = &gpmi_nfc_platform_data;
-	pdev->resource          =  gpmi_nfc_resources;
-	pdev->num_resources     = ARRAY_SIZE(gpmi_nfc_resources);
-	mxs_add_device(pdev, 1);
+	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		pdev = mxs_get_device(GPMI_NFC_DRIVER_NAME, 0);
+		if (pdev == NULL || IS_ERR(pdev))
+			return;
+		pdev->dev.platform_data = &gpmi_nfc_platform_data;
+		pdev->resource          =  gpmi_nfc_resources;
+		pdev->num_resources     = ARRAY_SIZE(gpmi_nfc_resources);
+		mxs_add_device(pdev, 1);
+	}
 }
 #else
 static void mx28_init_gpmi_nfc(void)
@@ -464,7 +466,7 @@ static void mx28_init_gpmi_nfc(void)
 #endif
 
 
-#if !defined(CONFIG_MACH_MX28EVK)
+#if defined(CONFIG_MACH_TS7600)
 static void mx28_init_fpgaclk(void) 
 {
 	struct clk *pwm_clk = clk_get(NULL, "pwm");
@@ -517,63 +519,37 @@ static struct wl12xx_platform_data wl1271_data = {
 };
 	
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
-#define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
-#define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
+#define MMC_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 
-#if defined(CONFIG_MACH_MX28EVK)
-#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
-#else
-#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#endif
-
-
-static int mxs_mmc_get_wp_ssp0(void)
+static int ts_mmc_get_wp(void)
 {
-#if defined(CONFIG_MACH_MX28EVK)
-	return gpio_get_value(MMC0_WP);
-#endif 
 	return 0;
 }
 
-static int mxs_mmc_hw_init_ssp0(void)
+static int ts_mmc_hw_init(void)
 {
 	int ret = 0;
 
-#if defined(CONFIG_MACH_MX28EVK)
-	/* Configure write protect GPIO pin */
-	ret = gpio_request(MMC0_WP, "mmc0_wp");
-	if (ret)
-		goto out_wp;
-
-	gpio_set_value(MMC0_WP, 0);
-	gpio_direction_input(MMC0_WP);
-#endif
 	/* Configure POWER pin as gpio to drive power to MMC slot */
-	ret = gpio_request(MMC0_POWER, "mmc0_power");
-	if (ret)
-		goto out_power;
+	ret = gpio_request(MMC_POWER, "mmc0_power");
+	if (ret) {
+		/* Only error if we did not get a busy*/
+		if(ret != -16)
+		  goto out_power;
+	}
 
 
-	gpio_direction_output(MMC0_POWER, 0);
+	gpio_direction_output(MMC_POWER, 0);
 	mdelay(100);
 
 	return 0;
 
 out_power:
-#if defined(CONFIG_MACH_MX28EVK)
-	gpio_free(MMC0_WP);
-#endif
-out_wp:
 	return ret;
 }
 
-static void mxs_mmc_hw_release_ssp0(void)
+static void ts_mmc_hw_release(void)
 {
-#if defined(CONFIG_MACH_MX28EVK)
-	gpio_free(MMC0_POWER);
-	gpio_free(MMC0_WP);
-#endif
 
 }
 
@@ -582,71 +558,9 @@ static void mxs_mmc_cmd_pullup_ssp0(int enable)
 	mxs_set_pullup(PINID_SSP0_CMD, enable, "mmc0_cmd");
 }
 
-static unsigned long mxs_mmc_setclock_ssp0(unsigned long hz)
+static void mxs_mmc_cmd_pullup_ssp1(int enable)
 {
-	struct clk *ssp = clk_get(NULL, "ssp.0"), *parent;
-
-	if (hz > 1000000)
-		parent = clk_get(NULL, "ref_io.0");
-	else
-		parent = clk_get(NULL, "xtal.0");
-
-	clk_set_parent(ssp, parent);
-	clk_set_rate(ssp, 2 * hz);
-	clk_put(parent);
-	clk_put(ssp);
-
-	return hz;
-}
-
-static int mxs_mmc_get_wp_ssp2(void)
-{
-#if defined(CONFIG_MACH_MX28EVK)
-	return gpio_get_value(MMC1_WP);
-#endif
-	return 0;
-}
-
-static int mxs_mmc_hw_init_ssp2(void)
-{
-	int ret = 0;
-
-#if defined(CONFIG_MACH_MX28EVK)
-	/* Configure write protect GPIO pin */
-	ret = gpio_request(MMC1_WP, "mmc1_wp");
-	if (ret)
-		goto out_wp;
-
-	gpio_set_value(MMC1_WP, 0);
-	gpio_direction_input(MMC1_WP);
-
-	/* Configure POWER pin as gpio to drive power to MMC slot */
-
-	ret = gpio_request(MMC1_POWER, "mmc1_power");
-	if (ret)
-		goto out_power;
-
-#endif
-
-	gpio_direction_output(MMC1_POWER, 0);
-	mdelay(100);
-
-	return 0;
-
-out_power:
-#if defined(CONFIG_MACH_MX28EVK)
-	gpio_free(MMC1_WP);
-#endif
-out_wp:
-	return ret;
-}
-
-static void mxs_mmc_hw_release_ssp2(void)
-{
-#if defined(CONFIG_MACH_MX28EVK)
-	gpio_free(MMC1_POWER);
-	gpio_free(MMC1_WP);
-#endif
+	mxs_set_pullup(PINID_GPMI_RDY1, enable, "mmc1_cmd");
 }
 
 static void mxs_mmc_cmd_pullup_ssp2(int enable)
@@ -654,12 +568,12 @@ static void mxs_mmc_cmd_pullup_ssp2(int enable)
 	mxs_set_pullup(PINID_SSP0_DATA6, enable, "mmc1_cmd");
 }
 
-static unsigned long mxs_mmc_setclock_ssp2(unsigned long hz)
+static unsigned long mxs_mmc_setclock_ssp0(unsigned long hz)
 {
-	struct clk *ssp = clk_get(NULL, "ssp.2"), *parent;
+	struct clk *ssp = clk_get(NULL, "ssp.0"), *parent;
 
 	if (hz > 1000000)
-		parent = clk_get(NULL, "ref_io.1");
+		parent = clk_get(NULL, "ref_io.0");
 	else
 		parent = clk_get(NULL, "xtal.0");
 
@@ -688,14 +602,30 @@ static unsigned long mxs_mmc_setclock_ssp1(unsigned long hz)
 	return hz;
 }
 
+static unsigned long mxs_mmc_setclock_ssp2(unsigned long hz)
+{
+	struct clk *ssp = clk_get(NULL, "ssp.2"), *parent;
+
+	if (hz > 1000000)
+		parent = clk_get(NULL, "ref_io.1");
+	else
+		parent = clk_get(NULL, "xtal.0");
+
+	clk_set_parent(ssp, parent);
+	clk_set_rate(ssp, 2 * hz);
+	clk_put(parent);
+	clk_put(ssp);
+
+	return hz;
+}
+
 static struct mxs_mmc_platform_data mmc0_data = {
-	.hw_init	= mxs_mmc_hw_init_ssp0,
-	.hw_release	= mxs_mmc_hw_release_ssp0,
-	.get_wp		= mxs_mmc_get_wp_ssp0,
+	.hw_init	= ts_mmc_hw_init,
+	.hw_release	= ts_mmc_hw_release,
+	.get_wp		= ts_mmc_get_wp,
 	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp0,
 	.setclock	= mxs_mmc_setclock_ssp0,
-	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
-				| MMC_CAP_DATA_DDR,
+	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_DATA_DDR,
 	.min_clk	= 400000,
 	.max_clk	= 48000000,
 	.read_uA        = 50000,
@@ -729,17 +659,51 @@ static struct resource mmc0_resource[] = {
 };
 
 static struct mxs_mmc_platform_data mmc1_data = {
-	.hw_init	= mxs_mmc_hw_init_ssp2,
-	.hw_release	= mxs_mmc_hw_release_ssp2,
-	.get_wp		= mxs_mmc_get_wp_ssp2,
-	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp2,
-#if defined(CONFIG_MACH_MX28EVK)
+	.hw_init	= ts_mmc_hw_init,
+	.hw_release	= ts_mmc_hw_release,
+	.get_wp		= ts_mmc_get_wp,
+	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp1,
 	.setclock	= mxs_mmc_setclock_ssp1,
-#else
+	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_DATA_DDR,
+	.min_clk	= 400000,
+	.max_clk	= 48000000,
+	.read_uA        = 50000,
+	.write_uA       = 70000,
+	.clock_mmc = "ssp.1",
+	.power_mmc = NULL,
+	.fastpath_sz = 1024,
+};
+
+static struct resource mmc1_resource[] = {
+	{
+		.flags	= IORESOURCE_MEM,
+		.start	= SSP1_PHYS_ADDR,
+		.end	= SSP1_PHYS_ADDR + 0x2000 - 1,
+	},
+	{
+		.flags	= IORESOURCE_DMA,
+		.start	= MXS_DMA_CHANNEL_AHB_APBH_SSP1,
+		.end	= MXS_DMA_CHANNEL_AHB_APBH_SSP1,
+	},
+	{
+		.flags	= IORESOURCE_IRQ,
+		.start	= IRQ_SSP1_DMA,
+		.end	= IRQ_SSP1_DMA,
+	},
+	{
+		.flags	= IORESOURCE_IRQ,
+		.start	= IRQ_SSP1,
+		.end	= IRQ_SSP1,
+	},
+};
+
+static struct mxs_mmc_platform_data mmc2_data = {
+	.hw_init	= ts_mmc_hw_init,
+	.hw_release	= ts_mmc_hw_release,
+	.get_wp		= ts_mmc_get_wp,
+	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp2,
 	.setclock	= mxs_mmc_setclock_ssp2,
-#endif
-	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
-				| MMC_CAP_DATA_DDR,
+	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_DATA_DDR,
 	.min_clk	= 400000,
 	.max_clk	= 48000000,
 	.read_uA        = 50000,
@@ -749,7 +713,7 @@ static struct mxs_mmc_platform_data mmc1_data = {
 	.fastpath_sz = 1024,
 };
 
-static struct resource mmc1_resource[] = {
+static struct resource mmc2_resource[] = {
 	{
 		.flags	= IORESOURCE_MEM,
 		.start	= SSP2_PHYS_ADDR,
@@ -794,13 +758,23 @@ static void __init mx28_init_mmc(void)
 #if defined(CONFIG_MACH_TS7400) 
 	if(boardid) {
 #endif
-		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+		if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
 			pdev = mxs_get_device("mxs-mmc", 1);
 			if (pdev == NULL || IS_ERR(pdev))
 				return;
 			pdev->resource = mmc1_resource;
 			pdev->num_resources = ARRAY_SIZE(mmc1_resource);
 			pdev->dev.platform_data = &mmc1_data;
+			mxs_add_device(pdev, 2);
+		}
+
+		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+			pdev = mxs_get_device("mxs-mmc", 2);
+			if (pdev == NULL || IS_ERR(pdev))
+				return;
+			pdev->resource = mmc2_resource;
+			pdev->num_resources = ARRAY_SIZE(mmc2_resource);
+			pdev->dev.platform_data = &mmc2_data;
 			mxs_add_device(pdev, 2);
 		}
 	
@@ -952,26 +926,8 @@ static struct resource fec0_resource[] = {
 	},
 };
 
-static struct resource fec1_resource[] = {
-	{
-		.start  = ENET_PHYS_ADDR + 0x4000,
-		.end    = ENET_PHYS_ADDR + 0x7fff,
-		.flags  = IORESOURCE_MEM
-	},
-	{
-		.start  = IRQ_ENET_MAC1,
-		.end    = IRQ_ENET_MAC1,
-		.flags  = IORESOURCE_IRQ
-	},
-};
-
 extern int mx28evk_enet_gpio_init(void);
 static struct fec_platform_data fec_pdata0 = {
-	.phy = PHY_INTERFACE_MODE_RMII,
-	.init = mx28evk_enet_gpio_init,
-};
-
-static struct fec_platform_data fec_pdata1 = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 	.init = mx28evk_enet_gpio_init,
 };
@@ -981,7 +937,6 @@ static void __init mx28_init_fec(void)
 	struct platform_device *pdev;
 	struct mxs_dev_lookup *lookup;
 	struct fec_platform_data *pfec;
-	int i;
 	u32 val;
 
 	__raw_writel(BM_OCOTP_CTRL_RD_BANK_OPEN,
@@ -994,37 +949,6 @@ static void __init mx28_init_fec(void)
 	lookup = mxs_get_devices("mxs-fec"); 
 	if (lookup == NULL || IS_ERR(lookup))
 		return;                      
-#if defined(CONFIG_MACH_MX28EVK)
-	for (i = 0; i < lookup->size; i++) {
-		pdev = lookup->pdev + i;
-		val =  __raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) +
-		  HW_OCOTP_CUSTn(pdev->id));
-		switch (pdev->id) {
-		  case 0:
-			pdev->resource = fec0_resource;
-			pdev->num_resources = ARRAY_SIZE(fec0_resource);
-			pdev->dev.platform_data = &fec_pdata0;
-			break;
-		  case 1:
-			pdev->resource = fec1_resource;
-			pdev->num_resources = ARRAY_SIZE(fec1_resource);
-			pdev->dev.platform_data = &fec_pdata1;
-			break;
-		  default:
-			return;
-		}
-
-		pfec = (struct fec_platform_data *)pdev->dev.platform_data;
-		pfec->mac[0] = 0x00;
-		pfec->mac[1] = 0x04;
-		pfec->mac[2] = (val >> 24) & 0xFF;
-		pfec->mac[3] = (val >> 16) & 0xFF;
-		pfec->mac[4] = (val >> 8) & 0xFF;
-		pfec->mac[5] = (val >> 0) & 0xFF;
-
-		mxs_add_device(pdev, 2);
-	}
-#else
 	pdev = lookup->pdev;
 	pdev->resource = fec0_resource;
 	pdev->num_resources = ARRAY_SIZE(fec0_resource);
@@ -1049,7 +973,6 @@ static void __init mx28_init_fec(void)
 		__raw_readl(IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL))
 		udelay(10);
 	mxs_add_device(pdev, 2);
-#endif
 	
 }
 #else
