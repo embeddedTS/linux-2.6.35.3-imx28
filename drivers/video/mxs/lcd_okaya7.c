@@ -31,22 +31,22 @@
 #include <mach/regs-pwm.h>
 #include <mach/system.h>
 
-#define DOTCLK_H_ACTIVE  800
 #define DOTCLK_H_PULSE_WIDTH 10
 #define DOTCLK_HF_PORCH  164
 #define DOTCLK_HB_PORCH  89
 #define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
-#define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
+#define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH)
 
-#define DOTCLK_V_ACTIVE  480
 #define DOTCLK_V_PULSE_WIDTH  10
 #define DOTCLK_VF_PORCH  10
 #define DOTCLK_VB_PORCH  23
 #define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
-#define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
+#define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_WAIT_CNT)
 
 static struct mxs_platform_bl_data bl_data;
 static struct clk *lcd_clk;
+static int xres = 800;
+static int yres = 480;
 
 static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		      struct mxs_platform_fb_entry *pentry)
@@ -89,10 +89,10 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 	__raw_writel(BM_LCDIF_CTRL1_RESET, REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);	/* high */
 	mdelay(1);
 
-	setup_dotclk_panel(DOTCLK_V_PULSE_WIDTH, DOTCLK_V_PERIOD,
-			   DOTCLK_V_WAIT_CNT, DOTCLK_V_ACTIVE,
-			   DOTCLK_H_PULSE_WIDTH, DOTCLK_H_PERIOD,
-			   DOTCLK_H_WAIT_CNT, DOTCLK_H_ACTIVE, 0);
+	setup_dotclk_panel(DOTCLK_V_PULSE_WIDTH, DOTCLK_V_PERIOD+(pentry->x_res),
+			   DOTCLK_V_WAIT_CNT, pentry->x_res,
+			   DOTCLK_H_PULSE_WIDTH, DOTCLK_H_PERIOD+(pentry->y_res),
+			   DOTCLK_H_WAIT_CNT, pentry->y_res, 0);
 
 	ret = mxs_lcdif_dma_init(dev, phys, memsize);
 	if (ret)
@@ -148,8 +148,8 @@ static int blank_panel(int blank)
 
 static struct mxs_platform_fb_entry fb_entry = {
 	.name = "okaya7",
-	.x_res = 480,
-	.y_res = 800,
+	.x_res = 0,
+	.y_res = 0,
 	.bpp = 32,
 	.cycle_time_ns = 30,
 	.lcd_type = MXS_LCD_PANEL_DOTCLK,
@@ -247,9 +247,18 @@ static int __init register_devices(void)
 	if (pdev == NULL || IS_ERR(pdev))
 		return -ENODEV;
 
+	/* Yes, X and Y are reversed in this driver... */
+	fb_entry.x_res = yres;
+	fb_entry.y_res = xres;
 	mxs_lcd_register_entry(&fb_entry, pdev->dev.platform_data);
 
 	return 0;
 }
 
 subsys_initcall(register_devices);
+
+module_param(yres, int, S_IRUGO);
+MODULE_PARM_DESC(yres, "y resolution");
+module_param(xres, int, S_IRUGO);
+MODULE_PARM_DESC(xres, "X resolution");
+MODULE_LICENSE("GPL");

@@ -121,6 +121,7 @@ obj-$(CONFIG_FB_PNX4008_DUM)	  += pnx4008/
 obj-$(CONFIG_FB_PNX4008_DUM_RGB)  += pnx4008/
 obj-$(CONFIG_FB_MXC)		  += mxc/
 obj-$(CONFIG_FB_MXS)		  += mxs/
+obj-$(CONFIG_ARCH_MXS)            += mxs/lcdif.o
 obj-$(CONFIG_FB_IBM_GXT4500)	  += gxt4500.o
 obj-$(CONFIG_FB_PS3)		  += ps3fb.o
 obj-$(CONFIG_FB_SM501)            += sm501fb.o

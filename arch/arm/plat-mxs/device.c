@@ -814,6 +814,7 @@ struct platform_device *mxs_get_device(char *name, int id)
 	mutex_unlock(&device_mutex);
 	return pdev;
 }
+EXPORT_SYMBOL_GPL(mxs_get_device);
 
 struct mxs_dev_lookup *mxs_get_devices(char *name)
 {
