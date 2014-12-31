@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Thu Oct  9 10:49:06 2014
+# Wed Dec 31 16:36:20 2014
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1018,7 +1018,7 @@ CONFIG_SPI_SPIDEV=m
 # CONFIG_PPS is not set
 CONFIG_ARCH_REQUIRE_GPIOLIB=y
 CONFIG_GPIOLIB=y
-# CONFIG_GPIO_SYSFS is not set
+CONFIG_GPIO_SYSFS=y
 
 #
 # Memory mapped GPIO expanders:
@@ -1029,6 +1029,7 @@ CONFIG_GPIOLIB=y
 # I2C GPIO expanders:
 #
 # CONFIG_GPIO_MAX7300 is not set
+CONFIG_GPIO_TSGPIO=y
 # CONFIG_GPIO_MAX732X is not set
 # CONFIG_GPIO_PCA953X is not set
 # CONFIG_GPIO_PCF857X is not set

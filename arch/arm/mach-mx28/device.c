@@ -254,6 +254,14 @@ struct i2c_gpio_platform_data fpga_i2c_gpio = {
 	.scl_is_output_only = 0,
 };
 
+#if defined(CONFIG_MACH_TS7400)
+static struct i2c_board_info i2c1_board_info[] __initdata = {
+	{
+		I2C_BOARD_INFO("tsgpio", 0x28),
+	}
+};
+#endif
+
 static struct platform_device i2c_gpio = {
 	.name		= "i2c-gpio",
 	.id		= 1,
@@ -337,7 +345,10 @@ static void __init mx28_init_i2c(void)
 #if defined(CONFIG_MACH_TS7400)
 	if(boardid == 0x2) { //7680
 		platform_device_register(&i2c_gpio);
+		i2c_register_board_info(1, i2c1_board_info,
+			ARRAY_SIZE(i2c1_board_info));
 	}
+
 #endif
 
 	lookup = mxs_get_devices("mxs-i2c");
