@@ -221,7 +221,8 @@ static int gpio_ts_probe(struct i2c_client *client,
 	priv->client = client;
 	priv->gpio_chip = template_chip;
 	priv->gpio_chip.base = -1;
-	priv->gpio_chip.ngpio = 32;
+	priv->gpio_chip.ngpio = 45;
+	priv->gpio_chip.label = "tsgpio";
 	priv->gpio_chip.dev = &client->dev;
 
 	mutex_init(&priv->mutex);
