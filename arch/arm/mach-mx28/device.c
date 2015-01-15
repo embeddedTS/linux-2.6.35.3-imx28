@@ -497,6 +497,8 @@ static void mx28_init_fpgaclk(void)
 #else
 static void mx28_init_fpgaclk(void) 
 {
+	struct clk *pwm_clk = clk_get(NULL, "pwm");
+	clk_enable(pwm_clk);
 }
 #endif
 
