@@ -203,15 +203,19 @@ static int __init get_M0_id(void) {
 	ret &= 0xf;
 
 	switch(ret) {
-	  case 0x0:
+	/* The addition of eMMC on the mx28s was a huge change in the series.
+	 * The difference is unknown by uC, and is only seen with a CPU 
+	 * strapping pin.  Revs that went this way drop NAND and use eMMC on SSP1
+         * which is bootable.
+	 */
+	  case 0x0: //and 0x4
+		if(!((ioread32(dio + 0x240)) & (1 << 7))) ret = 0x4;
+		/* 4 is 7400 rev B+
+		 * Userspace can check for eMMC or NAND
+		 */
 		printk(KERN_INFO "boardID=7400\n");
 		break;
-	  case 0x1:
-		/* The TS-7670 rev C was a major changeup in the TS-7670.
-		 * The difference is unknown by uC, and is only seen with a CPU 
-		 * strapping pin.  Rev C drops NAND and adds eMMC to SSP1, which
-		 * is bootable.
-		 */
+	  case 0x1: //and 0x3
 		if(!((ioread32(dio + 0x240)) & (1 << 7))) ret = 0x3;
 		/* 3 is 7670 rev C+
 		 * Userspace can check for eMMC or NAND

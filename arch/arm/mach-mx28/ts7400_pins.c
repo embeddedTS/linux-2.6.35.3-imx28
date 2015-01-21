@@ -1046,7 +1046,7 @@ void __init mx28evk_pins_init(int boardid)
 	  ARRAY_SIZE(common_pins));
 
 
-	if(boardid == 0x3) {
+	if(boardid == 0x3 || boardid == 0x4) { //TS-7670 C or TS-7400 B
 		mx28evk_init_pin_group(ssp1_emmc_pins,
 		  ARRAY_SIZE(ssp1_emmc_pins));
 	
