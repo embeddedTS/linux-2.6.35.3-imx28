@@ -225,6 +225,9 @@ static int __init get_M0_id(void) {
 	  case 0x2:
 		printk(KERN_INFO "boardID=7680\n");
 		break;
+	  default:
+		printk(KERN_INFO "boardID=unknown\n");
+		break;
 	}
 
 	iounmap(dio);
