@@ -1019,38 +1019,56 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 
 void __init mx28evk_pins_init(int boardid)
 {
-	if(boardid) {
-		mx28evk_init_pin_group(ts767080_pins,
-		  ARRAY_SIZE(ts767080_pins));
 
-		if(boardid == 0x2) {
-			mx28evk_init_pin_group(ts7680_mmcwifi,
-			  ARRAY_SIZE(ts7680_mmcwifi));
-		} else {
-			mx28evk_init_pin_group(sd2spi_pins,
-			  ARRAY_SIZE(sd2spi_pins));
-			mx28evk_init_pin_group(ts7670_pins,
-			  ARRAY_SIZE(ts7670_pins));
-		}
-		
-	} else {
+	switch(boardid) {
+	  case 0x0: //TS-7400 Rev A
 		mx28evk_init_pin_group(ts7400_pins,
 		  ARRAY_SIZE(ts7400_pins));
 		mx28evk_init_pin_group(sd2spi_pins,
 		  ARRAY_SIZE(sd2spi_pins));
-	}
-	mx28evk_init_pin_group(common_pins,
-	  ARRAY_SIZE(common_pins));
-
-
-	if(boardid == 0x3 || boardid == 0x4) { //TS-7670 C or TS-7400 B
-		mx28evk_init_pin_group(ssp1_emmc_pins,
-		  ARRAY_SIZE(ssp1_emmc_pins));
-	
-	} else {
 		mx28evk_init_pin_group(mx28evk_gpmi_pins,
 		  ARRAY_SIZE(mx28evk_gpmi_pins));
+		break;
+	  case 0x1: //TS-7670 Rev A
+		mx28evk_init_pin_group(ts767080_pins,
+		  ARRAY_SIZE(ts767080_pins));
+		mx28evk_init_pin_group(sd2spi_pins,
+		  ARRAY_SIZE(sd2spi_pins));
+		mx28evk_init_pin_group(ts7670_pins,
+		  ARRAY_SIZE(ts7670_pins));
+		mx28evk_init_pin_group(mx28evk_gpmi_pins,
+		  ARRAY_SIZE(mx28evk_gpmi_pins));
+		break;
+	  case 0x2: //TS-7680
+		mx28evk_init_pin_group(ts767080_pins,
+		  ARRAY_SIZE(ts767080_pins));
+		mx28evk_init_pin_group(ts7680_mmcwifi,
+		  ARRAY_SIZE(ts7680_mmcwifi));
+		mx28evk_init_pin_group(mx28evk_gpmi_pins,
+		  ARRAY_SIZE(mx28evk_gpmi_pins));
+		break;
+	  case 0x3: //TS-7670 Rev C
+		mx28evk_init_pin_group(ts767080_pins,
+		  ARRAY_SIZE(ts767080_pins));
+		mx28evk_init_pin_group(sd2spi_pins,
+		  ARRAY_SIZE(sd2spi_pins));
+		mx28evk_init_pin_group(ts7670_pins,
+		  ARRAY_SIZE(ts7670_pins));
+		mx28evk_init_pin_group(ssp1_emmc_pins,
+		  ARRAY_SIZE(ssp1_emmc_pins));
+		break;
+	  case 0x4:  //TS-7400-V2 Rev B
+		mx28evk_init_pin_group(ts7400_pins,
+		  ARRAY_SIZE(ts7400_pins));
+		mx28evk_init_pin_group(sd2spi_pins,
+		  ARRAY_SIZE(sd2spi_pins));
+		mx28evk_init_pin_group(ssp1_emmc_pins,
+		  ARRAY_SIZE(ssp1_emmc_pins));
+		break;
 	}
+
+	mx28evk_init_pin_group(common_pins,
+	  ARRAY_SIZE(common_pins));
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
