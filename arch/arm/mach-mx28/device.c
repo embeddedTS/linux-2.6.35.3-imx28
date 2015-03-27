@@ -768,9 +768,20 @@ static void __init mx28_init_mmc(void)
 		pdev->dev.platform_data = &mmc0_data;
 		mxs_add_device(pdev, 2);
 	}
-#if defined(CONFIG_MACH_TS7400) 
+
+#if defined(CONFIG_MACH_TS7600)
+	if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+		pdev = mxs_get_device("mxs-mmc", 2);
+		if (pdev == NULL || IS_ERR(pdev))
+			return;
+		pdev->resource = mmc2_resource;
+		pdev->num_resources = ARRAY_SIZE(mmc2_resource);
+		pdev->dev.platform_data = &mmc2_data;
+		mxs_add_device(pdev, 2);
+	}
+#elif defined(CONFIG_MACH_TS7400) 
 	if(boardid) {
-#endif
+		/* eMMC */
 		if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
 			pdev = mxs_get_device("mxs-mmc", 1);
 			if (pdev == NULL || IS_ERR(pdev))
@@ -781,7 +792,8 @@ static void __init mx28_init_mmc(void)
 			mxs_add_device(pdev, 2);
 		}
 
-		if (mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2) {
+		/* Second SD/TiWi-BLE */
+		if(boardid!=0x4 && mxs_get_type(PINID_SSP0_DATA6) == PIN_FUN2){
 			pdev = mxs_get_device("mxs-mmc", 2);
 			if (pdev == NULL || IS_ERR(pdev))
 				return;
@@ -790,8 +802,6 @@ static void __init mx28_init_mmc(void)
 			pdev->dev.platform_data = &mmc2_data;
 			mxs_add_device(pdev, 2);
 		}
-	
-#if defined(CONFIG_MACH_TS7400)
 
 		if(boardid == 0x2) /* 7680 */
 		{
@@ -1817,7 +1827,7 @@ int __init mx28_device_init(void) {
 #if defined(CONFIG_MACH_TS7400)
 	mx28_init_i2c(boardid);
 	mx28_init_mmc(boardid);
-	if(!boardid) mx28_init_spi();
+	if(!boardid || boardid == 0x4) mx28_init_spi();
 #else
 	mx28_init_i2c();
 	mx28_init_mmc();

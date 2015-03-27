@@ -1020,9 +1020,6 @@ void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count)
 void __init mx28evk_pins_init(int boardid)
 {
 	if(boardid) {
-		/*XXX: ts7670_pins must come before ts7680_mmcwifi
-		 * ts7680_mmcwifi sets up GPIO I2C pins
-		 */
 		mx28evk_init_pin_group(ts767080_pins,
 		  ARRAY_SIZE(ts767080_pins));
 
