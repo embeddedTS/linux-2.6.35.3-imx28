@@ -851,4 +851,10 @@ config SCx200_ACB
 	  This support is also available as a module.  If so, the module
 	  will be called scx200_acb.
 
+config DC767_I2C
+	bool "I2C Bus for TS-DC767 on TS-7670"
+	depends on I2C_GPIO
+	help
+	  blah blah blah
+
 endmenu

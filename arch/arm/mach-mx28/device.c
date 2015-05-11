@@ -270,6 +270,26 @@ static struct platform_device i2c_gpio = {
 	}
 };
 
+#if defined(CONFIG_DC767_I2C)
+struct i2c_gpio_platform_data fpga_i2c2_gpio = {
+	.sda_pin = MXS_PIN_TO_GPIO(PINID_LCD_D08),
+	.scl_pin = MXS_PIN_TO_GPIO(PINID_LCD_D07),
+	.udelay  = 167,
+	.timeout = 1000,
+	.sda_is_open_drain = 1,
+	.scl_is_open_drain = 1,
+	.scl_is_output_only = 0,
+};
+
+static struct platform_device i2c2_gpio = {
+	.name		= "i2c-gpio",
+	.id		= 2,
+	.dev = {
+		.platform_data = &fpga_i2c2_gpio,
+	}
+};
+#endif
+
 #ifdef	CONFIG_I2C_MXS_SELECT0
 static struct resource i2c0_resource[] = {
 	{
@@ -348,7 +368,10 @@ static void __init mx28_init_i2c(void)
 		i2c_register_board_info(1, i2c1_board_info,
 			ARRAY_SIZE(i2c1_board_info));
 	}
+#endif
 
+#if defined(CONFIG_DC767_I2C)
+	platform_device_register(&i2c2_gpio);
 #endif
 
 	lookup = mxs_get_devices("mxs-i2c");
