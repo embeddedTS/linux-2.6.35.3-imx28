@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Fri Nov 14 17:51:51 2014
+# Thu Aug 13 14:20:59 2015
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -364,7 +364,7 @@ CONFIG_ALIGNMENT_TRAP=y
 #
 CONFIG_ZBOOT_ROM_TEXT=0
 CONFIG_ZBOOT_ROM_BSS=0
-CONFIG_CMDLINE="console=null nowait lpj=1130496"
+CONFIG_CMDLINE="console=null nowait lpj=1130496 nbd.max_part=64"
 CONFIG_CMDLINE_FORCE=y
 # CONFIG_XIP_KERNEL is not set
 # CONFIG_KEXEC is not set
@@ -887,6 +887,7 @@ CONFIG_GPIOLIB=y
 # I2C GPIO expanders:
 #
 # CONFIG_GPIO_MAX7300 is not set
+# CONFIG_GPIO_TSGPIO is not set
 # CONFIG_GPIO_MAX732X is not set
 # CONFIG_GPIO_PCA953X is not set
 # CONFIG_GPIO_PCF857X is not set
