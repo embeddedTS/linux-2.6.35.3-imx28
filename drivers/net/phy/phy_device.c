@@ -396,6 +396,8 @@ EXPORT_SYMBOL(phy_connect);
  */
 void phy_disconnect(struct phy_device *phydev)
 {
+   phydev->link = 0;
+
 	if (phydev->irq > 0)
 		phy_stop_interrupts(phydev);
 
@@ -709,6 +711,7 @@ EXPORT_SYMBOL(genphy_config_aneg);
 int genphy_update_link(struct phy_device *phydev)
 {
 	int status;
+   static int x;
 
 	/* Do a fake read */
 	status = phy_read(phydev, MII_BMSR);
@@ -722,10 +725,16 @@ int genphy_update_link(struct phy_device *phydev)
 	if (status < 0)
 		return status;
 
-	if ((status & BMSR_LSTATUS) == 0)
-		phydev->link = 0;
-	else
+	if ((status & BMSR_LSTATUS) == 0) {
+	   if (x > 5)
+		   phydev->link = 0;
+		else
+		   x++;
+	}
+	else {
+	   x = 0;
 		phydev->link = 1;
+   }
 
 	return 0;
 }
@@ -878,7 +887,7 @@ int genphy_suspend(struct phy_device *phydev)
 	int value;
 
 	mutex_lock(&phydev->lock);
-
+   phydev->link = 0;
 	value = phy_read(phydev, MII_BMCR);
 	phy_write(phydev, MII_BMCR, (value | BMCR_PDOWN));
 
@@ -937,6 +946,7 @@ static int phy_probe(struct device *dev)
 	 * or both of these values */
 	phydev->supported = phydrv->features;
 	phydev->advertising = phydrv->features;
+   phydev->link = 0;
 
 	/* Set the state to READY by default */
 	phydev->state = PHY_READY;

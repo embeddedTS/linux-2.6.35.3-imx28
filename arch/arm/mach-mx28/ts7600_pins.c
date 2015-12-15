@@ -680,6 +680,40 @@ static struct pin_desc mx28evk_eth_pins[] = {
 	 .drive	= 1,
 	 },
 };
+
+/* During the SMSC hardware reset, these three pins are held at 111b */
+static struct pin_desc mx28evk_eth_mode_pins[] = {
+   {
+	 .name = "ENET0_RXD0",
+	 .id = PINID_ENET0_RXD0,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+	 {
+	 .name = "ENET0_RXD1",
+	 .id = PINID_ENET0_RXD1,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+	 {
+	 .name = "ENET0_RX_EN",
+	 .id = PINID_ENET0_RX_EN,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+};
 #endif
 
 static int __initdata enable_ssp1 = { 0 };
@@ -850,6 +884,13 @@ int mx28evk_enet_gpio_init(void)
 	//gpio_request(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), "ENET_PWR");
 	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
 
+	 for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
+		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
+			mx28evk_eth_mode_pins[i].name);
+   }
+
+	mx28evk_init_pin_group(mx28evk_eth_mode_pins,
+						ARRAY_SIZE(mx28evk_eth_mode_pins));
 	/* reset phy */
 	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
@@ -857,7 +898,15 @@ int mx28evk_enet_gpio_init(void)
 	mdelay(1);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 	/* Most a reset should last from switch chip is 14ms */
-	mdelay(15);
+	mdelay(20);
+
+	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
+		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
+			mx28evk_eth_mode_pins[i].name);
+   }
+
+	mx28evk_init_pin_group(mx28evk_eth_pins,
+						ARRAY_SIZE(mx28evk_eth_pins));
 
 	return 0;
 }
@@ -877,7 +926,7 @@ void mx28evk_enet_io_lowerpower_enter(void)
 			mx28evk_eth_pins[i].name);
 		gpio_direction_output(
 			MXS_PIN_TO_GPIO(mx28evk_eth_pins[i].id), 0);
-	}
+	}7
 
 }
 

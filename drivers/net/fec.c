@@ -128,7 +128,7 @@
 
 /* The FEC stores dest/src/type, data, and checksum for receive packets.
  */
-#define PKT_MAXBUF_SIZE		1518
+#define PKT_MAXBUF_SIZE		1522
 #define PKT_MINBUF_SIZE		64
 #define PKT_MAXBLR_SIZE		1536
 
@@ -693,7 +693,8 @@ static void fec_enet_adjust_link(struct net_device *dev)
 	if (phy_dev->link != fep->link) {
 		fep->link = phy_dev->link;
 		if (phy_dev->link) {
-			fec_restart(dev, phy_dev->duplex);
+		   if (! status_change)   /* don't restart if it was done above */
+			   fec_restart(dev, phy_dev->duplex);
 
 			/* if link becomes up and tx be stopped, start it */
 			if (netif_queue_stopped(dev)) {
@@ -1306,11 +1307,6 @@ fec_restart(struct net_device *dev, int duplex)
 	unsigned long reg;
 	int val;
 
-#ifdef CONFIG_ARCH_MXS
-	if (pdata && pdata->init && hasphy)
-		ret = pdata->init();
-#endif
-
 	/* Whack a reset.  We should wait for this. */
 	writel(1, fep->hwp + FEC_ECNTRL);
 	udelay(10);
@@ -1538,11 +1534,14 @@ fec_probe(struct platform_device *pdev)
 	}
 	clk_enable(fep->clk);
 
+	mdelay(5);
 	/* PHY reset should be done during clock on */
-	if (pdata && pdata->init && hasphy)
+	if (pdata && pdata->init) {
 		ret = pdata->init();
-	if (ret)
-		goto failed_platform_init;
+	   if (ret)
+		   goto failed_platform_init;
+   }
+
 	/*
 	 * The priority for getting MAC address is:
 	 * (1) kernel command line fec_mac = xx:xx:xx...
