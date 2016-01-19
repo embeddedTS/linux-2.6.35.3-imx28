@@ -947,57 +947,23 @@ static struct pin_desc mx28evk_spi_pins[] = {
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)	
-void mx28evk_enet_assert_reset(void)
-{
-   printk("Resetting external PHY...\n");
-	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-
-	mdelay(1);
-}
-
 int mx28evk_enet_gpio_init(void)
 {
-   int i;
-
-   printk("Configure external PHY pins...\n");
-
-   for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
-		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
-			mx28evk_eth_mode_pins[i].name);
-   }
-
-	mx28evk_init_pin_group(mx28evk_eth_mode_pins,
-						ARRAY_SIZE(mx28evk_eth_mode_pins));
-
 	/* pwr */
 	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
-		gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
 		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
 	} else if (mxs_get_type(PINID_LCD_D10) == PIN_GPIO) {
-		gpio_request(MXS_PIN_TO_GPIO(PINID_LCD_D10), "ENET_PWR");
 		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_LCD_D10), 0);
 	} else {
 		printk(KERN_ERR "Unable to determine correct EN_ENET_3.3V pin\n");
 	}
+   mdelay(20);
 
 	/* reset phy */
-//	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-//	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-
-//	mdelay(1);
-
-   printk("Release external PHY reset...\n");
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+	mdelay(2);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
-	mdelay(20);
-
-	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
-		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
-			mx28evk_eth_mode_pins[i].name);
-   }
-
-	mx28evk_init_pin_group(mx28evk_eth_pins,
-						ARRAY_SIZE(mx28evk_eth_pins));
+	mdelay(2);
 
 	return 0;
 }
@@ -1114,7 +1080,7 @@ void __init mx28evk_pins_init(int boardid)
 		mx28evk_init_pin_group(mx28evk_gpmi_pins,
 		  ARRAY_SIZE(mx28evk_gpmi_pins));
 		break;
-	  case 0x3: //TS-7670 Rev C
+	  case 0x3: //TS-7670 Rev C,D
 		mx28evk_init_pin_group(ts767080_pins,
 		  ARRAY_SIZE(ts767080_pins));
 		mx28evk_init_pin_group(sd2spi_pins,
@@ -1132,7 +1098,7 @@ void __init mx28evk_pins_init(int boardid)
 		mx28evk_init_pin_group(ssp1_emmc_pins,
 		  ARRAY_SIZE(ssp1_emmc_pins));
 		break;
-	}
+   }
 
 	mx28evk_init_pin_group(common_pins,
 	  ARRAY_SIZE(common_pins));

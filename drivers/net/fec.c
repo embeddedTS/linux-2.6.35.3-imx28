@@ -1308,6 +1308,7 @@ fec_restart(struct net_device *dev, int duplex)
 	int val;
 
 	/* Whack a reset.  We should wait for this. */
+	/* Note that this is a reset of the FEC, not the attached PHY */
 	writel(1, fep->hwp + FEC_ECNTRL);
 	udelay(10);
 
