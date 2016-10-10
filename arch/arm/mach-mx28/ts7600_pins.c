@@ -682,6 +682,40 @@ static struct pin_desc mx28evk_eth_pins[] = {
 	 .drive	= 1,
 	 },
 };
+
+/* During the SMSC hardware reset, these three pins are held at 111b */
+static struct pin_desc mx28evk_eth_mode_pins[] = {
+   {
+	 .name = "ENET0_RXD0",
+	 .id = PINID_ENET0_RXD0,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+	 {
+	 .name = "ENET0_RXD1",
+	 .id = PINID_ENET0_RXD1,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+	 {
+	 .name = "ENET0_RX_EN",
+	 .id = PINID_ENET0_RX_EN,
+	 .fun = PIN_GPIO,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 .output = 1,
+	 .data = 1,
+	 },
+};
 #endif
 
 static int __initdata enable_ssp1 = { 0 };
@@ -850,9 +884,9 @@ int mx28evk_enet_gpio_init(void)
 {
    /* reset phy */
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-	mdelay(10);
+	mdelay(2);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
-	mdelay(10);
+	mdelay(2);
 
 	return 0;
 }
