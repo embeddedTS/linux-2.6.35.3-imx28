@@ -882,11 +882,19 @@ static struct pin_desc mx28evk_spi_pins[] = {
 	|| defined(CONFIG_FEC_L2SWITCH)
 int mx28evk_enet_gpio_init(void)
 {
-   /* reset phy */
+	/* reset phy */
+	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
+
+	/* Wait for number of clocks */
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+	mdelay(15);
+
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 	mdelay(2);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
-	mdelay(2);
+
+	mdelay(15);
+	/* Marvell switch chip can hold OD reset for 14 ms max */
 
 	return 0;
 }
