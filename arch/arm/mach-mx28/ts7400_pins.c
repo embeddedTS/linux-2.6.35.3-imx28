@@ -949,19 +949,23 @@ static struct pin_desc mx28evk_spi_pins[] = {
 	|| defined(CONFIG_FEC_L2SWITCH)	
 int mx28evk_enet_gpio_init(void)
 {
+
+	/* put phy in reset */
+	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+
 	/* pwr */
 	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
+		gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "PHY_POWER");
 		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), 0);
 	} else if (mxs_get_type(PINID_LCD_D10) == PIN_GPIO) {
+		gpio_request(MXS_PIN_TO_GPIO(PINID_LCD_D10), "PHY_POWER");
 		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_LCD_D10), 0);
 	} else {
-		printk(KERN_ERR "Unable to determine correct EN_ENET_3.3V pin\n");
+		printk(KERN_ERR "Unable to determine EN_ENET_3.3V pin\n");
 	}
-   mdelay(20);
+	mdelay(26);
 
-	/* reset phy */
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-	mdelay(2);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 	mdelay(2);
 
