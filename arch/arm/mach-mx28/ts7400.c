@@ -256,7 +256,6 @@ static void __init mx28evk_init_machine(void)
 	mx28evk_pins_init(boardid);
 	mx28_device_init(boardid);
 	mx28evk_device_init();
-
 }
 
 MACHINE_START(MX28EVK, "Technologic Systems TS-7400/TS-7670/TS-7680")

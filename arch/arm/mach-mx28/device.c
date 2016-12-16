@@ -973,6 +973,7 @@ static struct resource fec0_resource[] = {
 };
 
 extern int mx28evk_enet_gpio_init(void);
+extern void mx28evk_enet_assert_reset(void);
 static struct fec_platform_data fec_pdata0 = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 	.init = mx28evk_enet_gpio_init,
@@ -984,6 +985,8 @@ static void __init mx28_init_fec(void)
 	struct mxs_dev_lookup *lookup;
 	struct fec_platform_data *pfec;
 	u32 val;
+
+	mx28evk_enet_assert_reset();
 
 	__raw_writel(BM_OCOTP_CTRL_RD_BANK_OPEN,
 			IO_ADDRESS(OCOTP_PHYS_ADDR) + HW_OCOTP_CTRL_SET);

@@ -62,20 +62,7 @@ static int smsc_phy_ack_interrupt(struct phy_device *phydev)
 
 static int smsc_phy_config_init(struct phy_device *phydev)
 {
-   int rc, n;
-
-   /* Do a soft reset of the attached PHY */
-	n = 50;
-	phy_write(phydev, MII_BMCR, BMCR_RESET);
-   do {
-      if (n-- < 0) {
-         printk("phy_probe: Soft reset of ethernet PHY failed!\n");
-         break;
-      }
-      msleep(10);
-   } while (phy_read(phydev, MII_BMCR) & BMCR_RESET);
-
-   rc = phy_read(phydev, MII_LAN83C185_CTRL_STATUS);
+	int rc = phy_read(phydev, MII_LAN83C185_CTRL_STATUS);
 	if (rc < 0)
 		return rc;
 
