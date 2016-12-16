@@ -27,8 +27,6 @@
 
 #include "mx28_pins.h"
 
-void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count);
-
 static struct pin_desc mx28evk_fixed_pins[] = {
 	{
 	 .name = "DUART.RX",
@@ -880,33 +878,28 @@ static struct pin_desc mx28evk_spi_pins[] = {
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
-
-void mx28evk_enet_assert_reset(void)
-{
-   printk("Resetting external PHY...\n");
-	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-
-	mdelay(1);
-}
-
-
 int mx28evk_enet_gpio_init(void)
 {
-   int i;
-         
-	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
+	/* pwr */
+	//gpio_request(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), "ENET_PWR");
+	//gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP1_DATA3), 0);
+
+	 for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
 		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
 			mx28evk_eth_mode_pins[i].name);
    }
 
 	mx28evk_init_pin_group(mx28evk_eth_mode_pins,
 						ARRAY_SIZE(mx28evk_eth_mode_pins));
-	
-	printk("Release external PHY reset...\n");
+	/* reset phy */
+	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+
+	mdelay(1);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+	/* Most a reset should last from switch chip is 14ms */
 	mdelay(20);
-		
+
 	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
 		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
 			mx28evk_eth_mode_pins[i].name);
@@ -933,7 +926,7 @@ void mx28evk_enet_io_lowerpower_enter(void)
 			mx28evk_eth_pins[i].name);
 		gpio_direction_output(
 			MXS_PIN_TO_GPIO(mx28evk_eth_pins[i].id), 0);
-	}
+	}7
 
 }
 
