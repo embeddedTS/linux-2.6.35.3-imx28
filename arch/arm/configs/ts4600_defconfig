@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Mon Oct 10 15:42:36 2016
+# Thu Aug 13 14:20:59 2015
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -641,7 +641,7 @@ CONFIG_PHYLIB=y
 # CONFIG_LXT_PHY is not set
 # CONFIG_CICADA_PHY is not set
 # CONFIG_VITESSE_PHY is not set
-CONFIG_SMSC_PHY=y
+# CONFIG_SMSC_PHY is not set
 # CONFIG_BROADCOM_PHY is not set
 # CONFIG_ICPLUS_PHY is not set
 # CONFIG_REALTEK_PHY is not set
