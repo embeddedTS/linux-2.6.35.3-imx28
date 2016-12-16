@@ -38,7 +38,8 @@
 #define MII_LAN83C185_ISF_INT_ALL (0x0e)
 
 #define MII_LAN83C185_ISF_INT_PHYLIB_EVENTS \
-	(MII_LAN83C185_ISF_INT6 | MII_LAN83C185_ISF_INT4)
+	(MII_LAN83C185_ISF_INT6 | MII_LAN83C185_ISF_INT4 | \
+	 MII_LAN83C185_ISF_INT7)
 
 #define MII_LAN83C185_EDPWRDOWN	(1 << 13) /* EDPWRDOWN */
 
@@ -78,7 +79,13 @@ static int smsc_phy_config_init(struct phy_device *phydev)
 	if (rc < 0)
 		return rc;
 
-	return 0;
+	/* Enable energy detect mode for this SMSC Transceivers */
+	rc = phy_write(phydev, MII_LAN83C185_CTRL_STATUS,
+		       rc | MII_LAN83C185_EDPWRDOWN);
+	if (rc < 0)
+		return rc;
+
+	return smsc_phy_ack_interrupt (phydev);
 }
 
 static int lan911x_config_init(struct phy_device *phydev)
