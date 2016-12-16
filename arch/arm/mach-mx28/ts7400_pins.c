@@ -27,8 +27,6 @@
 
 #include "mx28_pins.h"
 
-void __init mx28evk_init_pin_group(struct pin_desc *pins, unsigned count);
-
 static struct pin_desc ts7680_mmcwifi[] = {
 	{
 	 .name  = "SSP2_SCK",
@@ -614,41 +612,6 @@ static struct pin_desc mx28evk_eth_pins[] = {
 	 .drive = 1,
 	 },
 };
-
-/* During the SMSC hardware reset, these three pins are held at 111b */
-static struct pin_desc mx28evk_eth_mode_pins[] = {
-   {
-	 .name = "ENET0_RXD0",
-	 .id = PINID_ENET0_RXD0,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 .output = 1,
-	 .data = 1,
-	 },
-	 {
-	 .name = "ENET0_RXD1",
-	 .id = PINID_ENET0_RXD1,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 .output = 1,
-	 .data = 1,
-	 },
-	 {
-	 .name = "ENET0_RX_EN",
-	 .id = PINID_ENET0_RX_EN,
-	 .fun = PIN_GPIO,
-	 .strength = PAD_8MA,
-	 .voltage = PAD_3_3V,
-	 .drive	= 1,
-	 .output = 1,
-	 .data = 1,
-	 },
-};
-
 #endif
 
 static struct pin_desc ssp1_emmc_pins[] = {
@@ -946,30 +909,10 @@ static struct pin_desc mx28evk_spi_pins[] = {
 #endif
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
-	|| defined(CONFIG_FEC_L2SWITCH)	
-void mx28evk_enet_assert_reset(void)
-{
-   printk("Resetting external PHY...\n");
-	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
-
-	mdelay(1);
-}
+	|| defined(CONFIG_FEC_L2SWITCH)
 
 int mx28evk_enet_gpio_init(void)
 {
-   int i;
-
-   printk("Configure external PHY pins...\n");
-
-   for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
-		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
-			mx28evk_eth_mode_pins[i].name);
-   }
-
-	mx28evk_init_pin_group(mx28evk_eth_mode_pins,
-						ARRAY_SIZE(mx28evk_eth_mode_pins));
-
 	/* pwr */
 	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_GPIO) {
 		gpio_request(MXS_PIN_TO_GPIO(PINID_GPMI_RDY1), "ENET_PWR");
@@ -982,22 +925,12 @@ int mx28evk_enet_gpio_init(void)
 	}
 
 	/* reset phy */
-//	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-//	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
+	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 
-//	mdelay(1);
-
-   printk("Release external PHY reset...\n");
+	mdelay(1);
 	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
-	mdelay(20);
-
-	for (i = 0; i < ARRAY_SIZE(mx28evk_eth_mode_pins); i++) {
-		mxs_release_pin(mx28evk_eth_mode_pins[i].id,
-			mx28evk_eth_mode_pins[i].name);
-   }
-
-	mx28evk_init_pin_group(mx28evk_eth_pins,
-						ARRAY_SIZE(mx28evk_eth_pins));
+	mdelay(15);
 
 	return 0;
 }
