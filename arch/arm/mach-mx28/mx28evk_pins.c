@@ -1111,6 +1111,40 @@ static struct pin_desc mx28evk_spi_pins[] = {
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
+
+#ifdef CONFIG_MX28_ENET_ISSUE
+int mx28evk_enet_gpio_assert(void)
+{
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
+	return 0;
+}
+int mx28evk_enet_gpio_init(void)
+{
+	/*
+	 * reset phy
+	 * if init called after assert() called
+	 * nRST is already low and the following does nothing,
+	 * otherwise it asserts nRST to perform valid reset
+	 */
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 0);
+
+	/* LAN8720a minimum reset hold time 100us */
+	udelay(200);
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
+
+	/* LAN8720a output drive after nRST deassertion after max 800ns */
+	udelay(1);
+
+	/*
+	 * FIXME: Additional delay needed during fec_enet_adjust_link()
+	 * or any of its subfunctions or else link won't be reported.
+	 * Tricky: enabled trace printks also produce that delay
+	 */
+	mdelay(1);
+
+	return 0;
+}
+#else
 int mx28evk_enet_gpio_init(void)
 {
 	/* pwr */
@@ -1131,6 +1165,7 @@ int mx28evk_enet_gpio_init(void)
 
 	return 0;
 }
+#endif
 
 void mx28evk_enet_io_lowerpower_enter(void)
 {
@@ -1225,6 +1260,11 @@ void __init mx28evk_pins_init(void)
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
+
+#ifdef CONFIG_MX28_ENET_ISSUE
+		gpio_request(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), "PHY_RESET");
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_ENET0_RX_CLK), 1);
+#endif
 		mx28evk_init_pin_group(mx28evk_eth_pins,
 						ARRAY_SIZE(mx28evk_eth_pins));
 #endif

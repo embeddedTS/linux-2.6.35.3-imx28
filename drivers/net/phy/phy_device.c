@@ -722,10 +722,19 @@ int genphy_update_link(struct phy_device *phydev)
 	if (status < 0)
 		return status;
 
+#ifdef CONFIG_MX28_ENET_ISSUE
+	if ((phydev->reset_done) && time_before(jiffies,phydev->reset_timeout)){
+		phydev->link = 1;
+	} else {
+		phydev->link = (status & BMSR_LSTATUS)?1:0;
+		phydev->reset_done = 0;
+	}
+#else
 	if ((status & BMSR_LSTATUS) == 0)
 		phydev->link = 0;
 	else
 		phydev->link = 1;
+#endif
 
 	return 0;
 }

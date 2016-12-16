@@ -330,6 +330,11 @@ struct phy_device {
 	void (*adjust_link)(struct net_device *dev);
 
 	void (*adjust_state)(struct net_device *dev);
+
+#ifdef CONFIG_MX28_ENET_ISSUE
+	int reset_done;
+	unsigned long reset_timeout;
+#endif
 };
 #define to_phy_device(d) container_of(d, struct phy_device, dev)
 

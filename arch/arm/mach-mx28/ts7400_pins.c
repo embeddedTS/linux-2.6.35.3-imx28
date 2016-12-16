@@ -911,6 +911,14 @@ static struct pin_desc mx28evk_spi_pins[] = {
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
 
+#ifdef CONFIG_MX28_ENET_ISSUE
+int mx28evk_enet_gpio_assert(void)
+{
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+	return 0;
+}
+#endif
+
 int mx28evk_enet_gpio_init(void)
 {
 	/* pwr */
@@ -925,11 +933,11 @@ int mx28evk_enet_gpio_init(void)
 	}
 
 	/* reset phy */
-	gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 
 	mdelay(1);
-	gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+
 	mdelay(15);
 
 	return 0;
@@ -1072,6 +1080,10 @@ void __init mx28evk_pins_init(int boardid)
 
 #if defined(CONFIG_FEC) || defined(CONFIG_FEC_MODULE)\
 	|| defined(CONFIG_FEC_L2SWITCH)
+
+		gpio_request(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), "PHY_RESET");
+		gpio_direction_output(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
+
 		mx28evk_init_pin_group(mx28evk_eth_pins,
 						ARRAY_SIZE(mx28evk_eth_pins));
 #endif

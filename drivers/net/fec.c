@@ -196,11 +196,14 @@ struct fec_enet_private {
 	int	index;
 	int	link;
 	int	full_duplex;
+	int	speed;
 	struct  completion mdio_done;
 
 	struct	fec_ptp_private *ptp_priv;
 	uint	ptimer_present;
 };
+
+#define FEC_LINK_TIMEOUT	5000
 
 /*
  * Define the fixed address of the FEC hardware.
@@ -681,19 +684,10 @@ static void fec_enet_adjust_link(struct net_device *dev)
 		goto spin_unlock;
 	}
 
-	/* Duplex link change */
 	if (phy_dev->link) {
-		if (fep->full_duplex != phy_dev->duplex) {
-			fec_restart(dev, phy_dev->duplex);
+		if (!fep->link) {
+			fep->link = phy_dev->link;
 			status_change = 1;
-		}
-	}
-
-	/* Link on or off change */
-	if (phy_dev->link != fep->link) {
-		fep->link = phy_dev->link;
-		if (phy_dev->link) {
-			fec_restart(dev, phy_dev->duplex);
 
 			/* if link becomes up and tx be stopped, start it */
 			if (netif_queue_stopped(dev)) {
@@ -701,16 +695,39 @@ static void fec_enet_adjust_link(struct net_device *dev)
 				netif_wake_queue(dev);
 			}
 		}
-		else
+
+		if (fep->full_duplex != phy_dev->duplex)
+			status_change = 1;
+
+		if (phy_dev->speed != fep->speed) {
+			fep->speed = phy_dev->speed;
+			status_change = 1;
+		}
+
+		/* if any of the above changed restart the FEC */
+#ifdef CONFIG_MX28_ENET_ISSUE
+		if ((status_change) && (!fep->phy_dev->reset_done)) {
+				fep->phy_dev->reset_done = 1;
+				fep->phy_dev->reset_timeout = jiffies +
+					msecs_to_jiffies(FEC_LINK_TIMEOUT);
+				fec_restart(dev, phy_dev->duplex);
+				phy_print_status(phy_dev);
+		}
+#else
+		if (status_change) {
+			fec_restart(dev, phy_dev->duplex);
+			phy_print_status(phy_dev);
+		}
+#endif
+	} else {
+		if (fep->link) {
 			fec_stop(dev);
-		status_change = 1;
+			phy_print_status(phy_dev);
+		}
 	}
 
 spin_unlock:
 	spin_unlock_irqrestore(&fep->hw_lock, flags);
-
-	if (status_change)
-		phy_print_status(phy_dev);
 }
 
 static int fec_enet_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
@@ -1306,14 +1323,50 @@ fec_restart(struct net_device *dev, int duplex)
 	unsigned long reg;
 	int val;
 
-#ifdef CONFIG_ARCH_MXS
+#if defined(CONFIG_ARCH_MXS) && defined(CONFIG_MX28_ENET_ISSUE)
+	if (pdata && pdata->uninit && hasphy)
+		ret = pdata->uninit();
+#else
 	if (pdata && pdata->init && hasphy)
 		ret = pdata->init();
 #endif
 
 	/* Whack a reset.  We should wait for this. */
 	writel(1, fep->hwp + FEC_ECNTRL);
-	udelay(10);
+	while(readl(fep->hwp + FEC_ECNTRL)&1);
+
+#if defined(CONFIG_ARCH_MXS) && defined(CONFIG_MX28_ENET_ISSUE)
+	/* Enable MII mode */
+	if (duplex) {
+		/* MII enable / FD enable */
+		writel(OPT_FRAME_SIZE | 0x04, fep->hwp + FEC_R_CNTRL);
+		writel(0x04, fep->hwp + FEC_X_CNTRL);
+	} else {
+		/* MII enable / No Rcv on Xmit */
+		writel(OPT_FRAME_SIZE | 0x06, fep->hwp + FEC_R_CNTRL);
+		writel(0x0, fep->hwp + FEC_X_CNTRL);
+	}
+	fep->full_duplex = duplex;
+
+	reg = readl(fep->hwp + FEC_R_CNTRL);
+
+	/* Enable flow control and length check */
+	reg |= (0x40000000 | 0x00000020);
+
+	/* Check MII or RMII */
+	if (fep->phy_interface == PHY_INTERFACE_MODE_RMII)
+		reg |= 0x00000100;
+	else
+		reg &= ~0x00000100;
+
+	/* Check 10M or 100M */
+	if (fep->phy_dev && fep->phy_dev->speed == SPEED_100)
+		reg &= ~0x00000200; /* 100M */
+	else
+		reg |= 0x00000200;  /* 10M */
+
+	writel(reg, fep->hwp + FEC_R_CNTRL);
+#endif
 
 	/* Reset fec will reset MAC to zero, reconfig it again */
 	memcpy(&temp_mac, dev->dev_addr, ETH_ALEN);
@@ -1351,6 +1404,7 @@ fec_restart(struct net_device *dev, int duplex)
 		}
 	}
 
+#ifndef CONFIG_MX28_ENET_ISSUE
 	/* Enable MII mode */
 	if (duplex) {
 		/* MII enable / FD enable */
@@ -1385,6 +1439,8 @@ fec_restart(struct net_device *dev, int duplex)
 	writel(reg, fep->hwp + FEC_R_CNTRL);
 
 #endif
+#endif
+
 	/* Set MII speed */
 	writel(fep->phy_speed, fep->hwp + FEC_MII_SPEED);
 
@@ -1428,12 +1484,19 @@ fec_restart(struct net_device *dev, int duplex)
 
 	/* Enable interrupts we wish to service */
 	writel(FEC_DEFAULT_IMASK, fep->hwp + FEC_IMASK);
+
+#ifdef CONFIG_MX28_ENET_ISSUE
+	if (pdata && pdata->init)
+		ret = pdata->init();
+#endif
 }
 
 static void
 fec_stop(struct net_device *dev)
 {
 	struct fec_enet_private *fep = netdev_priv(dev);
+	struct fec_platform_data *pdata = fep->pdev->dev.platform_data;
+	unsigned int ret;
 
 	/* We cannot expect a graceful transmit stop without link !!! */
 	if (fep->link) {
@@ -1468,6 +1531,11 @@ fec_stop(struct net_device *dev)
 
 	netif_stop_queue(dev);
 	fep->link = 0;
+
+#ifdef CONFIG_MX28_ENET_ISSUE
+	if (pdata && pdata->init)
+		ret = pdata->init();
+#endif
 }
 
 static int __devinit

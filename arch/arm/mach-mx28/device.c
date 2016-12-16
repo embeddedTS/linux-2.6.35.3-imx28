@@ -972,11 +972,21 @@ static struct resource fec0_resource[] = {
 	},
 };
 
+#ifdef CONFIG_MX28_ENET_ISSUE
+extern int mx28evk_enet_gpio_init(void);
+extern int mx28evk_enet_gpio_assert(void);
+static struct fec_platform_data fec_pdata0 = {
+        .phy = PHY_INTERFACE_MODE_RMII,
+        .init = mx28evk_enet_gpio_init,
+	.uninit = mx28evk_enet_gpio_assert,
+};
+#else
 extern int mx28evk_enet_gpio_init(void);
 static struct fec_platform_data fec_pdata0 = {
-	.phy = PHY_INTERFACE_MODE_RMII,
-	.init = mx28evk_enet_gpio_init,
+       .phy = PHY_INTERFACE_MODE_RMII,
+       .init = mx28evk_enet_gpio_init,
 };
+#endif
 
 static void __init mx28_init_fec(void)
 {

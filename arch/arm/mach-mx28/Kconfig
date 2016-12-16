@@ -34,6 +34,14 @@ config MEM_mDDR
 	help
 	  Say Y to select mDDR memory
 
+config MX28_ENET_ISSUE
+	bool "Enable MX28 enet issue fix - Read help!"
+	depends on ARCH_MX28
+	help
+		Say Y to enable a fix for link up/down issue on mx28.
+		It is STRONGLY! recommended to always have external oscillators
+		provide the clock to ENET PHY and FEC unit.
+
 config MX28_SUSPEND_TO_RAM
 	bool "support MX28 suspend-to RAM feature"
   default n
