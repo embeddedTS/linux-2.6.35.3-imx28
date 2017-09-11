@@ -862,11 +862,13 @@ int mx28evk_enet_gpio_init(void)
 	/* reset phy */
 	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 0);
 
-	mdelay(1);
+	/* This needs to be asserted for 10 clks of 25 MHz, 400 ns */
+	mdelay(2);
 	gpio_set_value_cansleep(MXS_PIN_TO_GPIO(PINID_SSP0_DETECT), 1);
 
 	/* Most a reset should last from switch chip is 14ms */
-	mdelay(15);
+	/* It has been observed that 15 ms may not be enough/guaranteed */
+	mdelay(30);
 
 	return 0;
 }

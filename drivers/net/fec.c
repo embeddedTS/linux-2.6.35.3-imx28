@@ -1486,7 +1486,7 @@ fec_restart(struct net_device *dev, int duplex)
 	writel(FEC_DEFAULT_IMASK, fep->hwp + FEC_IMASK);
 
 #ifdef CONFIG_MX28_ENET_ISSUE
-	if (pdata && pdata->init)
+	if (pdata && pdata->init && hasphy)
 		ret = pdata->init();
 #endif
 }
@@ -1533,7 +1533,7 @@ fec_stop(struct net_device *dev)
 	fep->link = 0;
 
 #ifdef CONFIG_MX28_ENET_ISSUE
-	if (pdata && pdata->init)
+	if (pdata && pdata->init && hasphy)
 		ret = pdata->init();
 #endif
 }
