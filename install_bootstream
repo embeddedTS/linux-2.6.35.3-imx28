@@ -119,13 +119,13 @@ if [ ! -e /dev/$2$3 ] ; then
   echo "Error: Requested partition does not exist"
   exit 1
 fi
-if [ `sudo fdisk -lu /dev/$2 | awk '$5==53 {print $1}'` != "/dev/$2$3" ]  ; then
+if [ `sudo fdisk -lu /dev/$2 | awk '$6==53 {print $1}'` != "/dev/$2$3" ]  ; then
   echo "Error: requested partition /dev/$2$3 does not have ID 53"
   echo "Please make sure requested partition has the correct datatype"
   exit 1
 fi
 echo -e "\nInstalling boot stream $1 on /dev/$2$3..."                          
-mk_hdr `sudo fdisk -lu /dev/$2 | awk '$5==53 {print $2}'` 1  > temp.bin
+mk_hdr `sudo fdisk -lu /dev/$2 | awk '$6==53 {print $2}'` 1  > temp.bin
 sudo dd if=temp.bin of=/dev/$2$3 ibs=512 conv=sync                      
 sudo dd if=$1 of=/dev/$2$3 ibs=512 obs=512 seek=1 conv=sync             
 sync                                                               
