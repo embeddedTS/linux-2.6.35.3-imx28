@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Tue Dec 20 15:25:50 2016
+# Fri Jun 25 13:36:04 2021
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1294,7 +1294,7 @@ CONFIG_MMC_BLOCK_BOUNCE=y
 CONFIG_MMC_MXS=y
 # CONFIG_MEMSTICK is not set
 CONFIG_NEW_LEDS=y
-CONFIG_LEDS_CLASS=m
+CONFIG_LEDS_CLASS=y
 
 #
 # LED drivers
