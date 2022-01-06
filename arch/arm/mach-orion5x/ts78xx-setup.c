@@ -547,7 +547,7 @@ static void __init ts78xx_init(void)
 		printk(KERN_ERR "sysfs_create_file failed: %d\n", ret);
 }
 
-MACHINE_START(TS78XX, "Technologic Systems TS-78xx SBC")
+MACHINE_START(TS78XX, "embeddedTS TS-78xx SBC")
 	/* Maintainer: Alexander Clouter <alex@digriz.org.uk> */
 	.phys_io	= ORION5X_REGS_PHYS_BASE,
 	.io_pg_offst	= ((ORION5X_REGS_VIRT_BASE) >> 18) & 0xFFFC,

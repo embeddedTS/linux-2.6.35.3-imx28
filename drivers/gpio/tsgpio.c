@@ -271,6 +271,6 @@ static void __exit gpio_ts_exit(void)
 }
 module_exit(gpio_ts_exit);
 
-MODULE_AUTHOR("Technologic Systems");
-MODULE_DESCRIPTION("GPIO interface for Technologic Systems I2C-FPGA core");
+MODULE_AUTHOR("embeddedTS");
+MODULE_DESCRIPTION("GPIO interface for embeddedTS I2C-FPGA core");
 MODULE_LICENSE("GPL");

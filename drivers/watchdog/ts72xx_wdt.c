@@ -1,5 +1,5 @@
 /*
- * Watchdog driver for Technologic Systems TS-72xx based SBCs
+ * Watchdog driver for embeddedTS TS-72xx based SBCs
  * (TS-7200, TS-7250 and TS-7260). These boards have external
  * glue logic CPLD chip, which includes programmable watchdog
  * timer.

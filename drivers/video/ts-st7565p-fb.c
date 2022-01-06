@@ -1,6 +1,6 @@
 /*
  *  linux/drivers/video/ts-st7565p-.c -- Virtual frame buffer device for
- *  the Technologic Systems 4600 with attached ST7565P LCD display
+ *  the embeddedTS 4600 with attached ST7565P LCD display
  *    
  *  This driver is based on the vfb.c file.
  *

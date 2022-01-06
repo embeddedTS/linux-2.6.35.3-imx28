@@ -7,12 +7,12 @@ config MACH_MX28EVK
 	select USB_ARCH_HAS_EHCI
 
 config MACH_TS7600
-	bool "Technologic System TS-7600/TS-4600 series"
+	bool "embeddedTS TS-7600/TS-4600 series"
 	depends on ARCH_MX28
 	select USB_ARCH_HAS_EHCI
 
 config MACH_TS7400
-	bool "Technologic System TS-7400/TS-7670 series"
+	bool "embeddedTS TS-7400/TS-7670 series"
 	depends on ARCH_MX28
 	select USB_ARCH_HAS_EHCI
 

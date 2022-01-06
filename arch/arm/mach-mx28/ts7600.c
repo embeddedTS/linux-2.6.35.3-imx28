@@ -151,7 +151,7 @@ static void __init mx28evk_init_machine(void)
 	mx28evk_device_init();
 }
 
-MACHINE_START(MX28EVK, "Technologic Systems TS-7600/TS-4600")
+MACHINE_START(MX28EVK, "embeddedTS TS-7600/TS-4600")
 	.phys_io	= 0x80000000,
 	.io_pg_offst	= ((0xf0000000) >> 18) & 0xfffc,
 	.boot_params	= 0x40000100,

@@ -121,7 +121,7 @@ config GPIO_MAX7300
 	  GPIO driver for Maxim MAX7301 I2C-based GPIO expander.
 
 config GPIO_TSGPIO
-	tristate "Technologic Systems FPGA I2C GPIO"
+	tristate "embeddedTS FPGA I2C GPIO"
 	depends on I2C
 	help
 	  GPIO driver for TS I2C FPGA

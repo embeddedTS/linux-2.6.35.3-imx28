@@ -956,7 +956,7 @@ S:	Supported
 F:	arch/arm/mach-shmobile/
 F:	drivers/sh/
 
-ARM/TECHNOLOGIC SYSTEMS TS7250 MACHINE SUPPORT
+ARM/embeddedTS TS7250 MACHINE SUPPORT
 M:	Lennert Buytenhek <kernel@wantstofly.org>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained

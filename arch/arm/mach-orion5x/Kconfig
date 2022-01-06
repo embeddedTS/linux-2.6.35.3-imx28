@@ -77,11 +77,11 @@ config MACH_WRT350N_V2
 	  Linksys WRT350N v2 platform.
 
 config MACH_TS78XX
-	bool "Technologic Systems TS-78xx"
+	bool "embeddedTS TS-78xx"
 	select PM
 	help
 	  Say 'Y' here if you want your kernel to support the
-	  Technologic Systems TS-78xx platform.
+	  embeddedTS TS-78xx platform.
 
 config MACH_MV2120
 	bool "HP Media Vault mv2120"

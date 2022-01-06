@@ -129,14 +129,14 @@ config MTD_NETSC520
 	  to use the flash chips on it, say 'Y'.
 
 config MTD_TS5500
-	tristate "JEDEC Flash device mapped on Technologic Systems TS-5500"
+	tristate "JEDEC Flash device mapped on embeddedTS TS-5500"
 	depends on X86
 	select MTD_PARTITIONS
 	select MTD_JEDECPROBE
 	select MTD_CFI_AMDSTD
 	help
-	  This provides a driver for the on-board flash of the Technologic
-	  System's TS-5500 board. The 2MB flash is split into 3 partitions
+	  This provides a driver for the on-board flash of the embeddedTS
+	  TS-5500 board. The 2MB flash is split into 3 partitions
 	  which are accessed as separate MTD devices.
 
 	  mtd0 and mtd2 are the two BIOS drives, which use the resident

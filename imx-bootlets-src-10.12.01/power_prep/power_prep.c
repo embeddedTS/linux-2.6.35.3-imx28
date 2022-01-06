@@ -309,7 +309,7 @@ int _start( void )
 #endif
 
 	printf("\r\n>> TS-BOOTROM - built "__DATE__" "__TIME__"\r\n");
-	printf(">> Copyright (c) 2013, Technologic Systems\r\n");
+	printf(">> Copyright (c) 2013-2022 embeddedTS\r\n");
 
 	PowerPrep_CPUClock2XTAL();
 	PowerPrep_ClearAutoRestart();

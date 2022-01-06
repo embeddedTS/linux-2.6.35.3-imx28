@@ -176,11 +176,11 @@ config MACH_SNAPPER_CL15
 	  Systems Snapper CL15 Module.
 
 config MACH_TS72XX
-	bool "Support Technologic Systems TS-72xx SBC"
+	bool "Support embeddedTS TS-72xx SBC"
 	depends on EP93XX_SDCE3_SYNC_PHYS_OFFSET
 	help
 	  Say 'Y' here if you want your kernel to support the
-	  Technologic Systems TS-72xx board.
+	  embeddedTS TS-72xx board.
 
 choice
 	prompt "Select a UART for early kernel messages"

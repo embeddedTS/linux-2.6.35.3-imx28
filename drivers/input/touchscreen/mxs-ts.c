@@ -3,7 +3,7 @@
  *
  * Author: Vitaly Wool <vital@embeddedalley.com>
  *
- * Copyright 2012 Technologic Systems
+ * Copyright 2012-2022 Technologic Systems, Inc. dba embeddedTS
  * Copyright 2008-2010 Freescale Semiconductor, Inc.
  * Copyright 2008 Embedded Alley Solutions, Inc All Rights Reserved.
  */

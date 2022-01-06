@@ -19,7 +19,7 @@ config FB_MXS_LCD_OKAYA7
 	tristate "Okaya 7\" LCD PANEL (TS TPC products)"
 	default n 
 	---help---
-	  Say Y here to include support for Technologic System's
+	  Say Y here to include support for embeddedTS's
 	  7" LCD touch panel.
 
 config FB_MXS_LCD_LMS430
